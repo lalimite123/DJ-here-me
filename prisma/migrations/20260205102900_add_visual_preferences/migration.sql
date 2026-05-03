@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `DJSettings` ADD COLUMN `ambientMode` VARCHAR(191) NOT NULL DEFAULT '1',
+    ADD COLUMN `visualizerMode` VARCHAR(191) NOT NULL DEFAULT '1';

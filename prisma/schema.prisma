@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  image         String?
+  isAdmin       Boolean        @default(false) // Pour identifier l'administrateur
+  accounts      Account[]
+  sessions      Session[]
+  settings      DJSettings?
+  shows         Show[]
+  bannedWords   BannedWord[]
+}
+
+model DJSettings {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @unique @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  artistName    String?
+  pricePerChar  Float    @default(0.1)
+  starPrice     Float    @default(1.0)
+  kissPrice     Float    @default(2.0)
+  heartPrice    Float    @default(1.5)
+  autoModerate  Boolean  @default(true)
+  paypalEmail   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Message {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  content     String
+  displayName String
+  payment     Float    @default(0)
+  showId      String   @db.ObjectId
+  show        Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  paid        Boolean?
+  paymentId   String?
+  
+  // Nouveaux champs pour les effets visuels (optionnels)
+  effectType      String? // ex: "confetti", "snow", "stars" ou ID de ThemeVideo
+  takeoverVideoId String? @db.ObjectId // Référence vers la vidéo d'animation achetée
+  takeoverVideo   ThemeVideo? @relation(fields: [takeoverVideoId], references: [id])
+  emoji3D         String? // ex: "❤️", "🔥", "🍾"
+  
+  // Nouveau champ pour la durée d'affichage payée par le client
+  duration        Int     @default(5) // Durée en secondes (par défaut 5)
+}
+
+model Show {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  active        Boolean    @default(true)
+  themeId       String?    @db.ObjectId // Le thème vidéo sélectionné par le DJ
+  theme         Theme?     @relation(fields: [themeId], references: [id])
+  userId        String     @db.ObjectId
+  user          User       @relation(fields: [userId], references: [id])
+  messages      Message[]
+  createdAt     DateTime   @default(now())
+  endedAt       DateTime?
+  totalEarnings Float      @default(0) // Toplam kazanç
+}
+
+model BannedWord {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  word      String
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+// ==========================================
+// NOUVEAUX MODÈLES POUR LES THÈMES VIDÉO
+// ==========================================
+
+model Theme {
+  id                    String       @id @default(auto()) @map("_id") @db.ObjectId
+  name                  String       // ex: "Cyberpunk City"
+  description           String?
+  thumbnailUrl          String?      // URL de l'image miniature
+  backgroundVideoUrl    String       // URL de la vidéo de fond
+  isActive              Boolean      @default(true)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  shows                 Show[]
+  takeovers             ThemeVideo[]
+}
+
+model ThemeVideo {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  name            String   // ex: "Hologramme Géant"
+  videoUrl        String   // URL de l'animation vidéo
+  price           Float    // Prix d'achat pour le client
+  themeId         String   @db.ObjectId
+  theme           Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  messages        Message[]
+}
