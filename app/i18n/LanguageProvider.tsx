@@ -196,7 +196,11 @@ const translations: Record<Language, Dictionary> = {
     adminThemesAddAnimationBtn: "Animasyon Ekle",
     adminThemesCatalogTitle: "3. Mevcut Tema Kataloğu",
     adminThemesNoThumbnail: "Küçük resim yok",
-    adminThemesAssociatedAnimations: "İlişkili Animasyonlar ({count}) :"
+    adminThemesAssociatedAnimations: "İlişkili Animasyonlar ({count}) :",
+    startShowChooseThemeTitle: "Show'un atmosferini seçin",
+    startShowChooseThemeDesc: "Büyük ekranda yayınlanacak görsel temayı seçin.",
+    startShowNoThemes: "Kullanılabilir tema yok. Yöneticiden bir tane oluşturmasını isteyin.",
+    scanToSend: "Mesaj göndermek için tarayın"
   },
   en: {
     languageLabel: "Language",
@@ -387,7 +391,11 @@ const translations: Record<Language, Dictionary> = {
     adminThemesAddAnimationBtn: "Add Animation",
     adminThemesCatalogTitle: "3. Existing Themes Catalog",
     adminThemesNoThumbnail: "No thumbnail",
-    adminThemesAssociatedAnimations: "Associated Animations ({count}) :"
+    adminThemesAssociatedAnimations: "Associated Animations ({count}) :",
+    startShowChooseThemeTitle: "Choose the Show's atmosphere",
+    startShowChooseThemeDesc: "Select the visual theme that will be broadcasted on the big screen.",
+    startShowNoThemes: "No themes available. Ask the administrator to create one.",
+    scanToSend: "Scan to send a message"
   },
   de: {
     languageLabel: "Sprache",
@@ -578,7 +586,11 @@ const translations: Record<Language, Dictionary> = {
     adminThemesAddAnimationBtn: "Animation hinzufügen",
     adminThemesCatalogTitle: "3. Bestehender Themenkatalog",
     adminThemesNoThumbnail: "Keine Miniaturansicht",
-    adminThemesAssociatedAnimations: "Zugehörige Animationen ({count}) :"
+    adminThemesAssociatedAnimations: "Zugehörige Animationen ({count}) :",
+    startShowChooseThemeTitle: "Wähle die Atmosphäre der Show",
+    startShowChooseThemeDesc: "Wähle das visuelle Thema, das auf der großen Leinwand übertragen wird.",
+    startShowNoThemes: "Keine Themen verfügbar. Bitten Sie den Administrator, eines zu erstellen.",
+    scanToSend: "Scannen, um eine Nachricht zu senden"
   },
   fr: {
     languageLabel: "Langue",
@@ -769,7 +781,11 @@ const translations: Record<Language, Dictionary> = {
     adminThemesAddAnimationBtn: "Ajouter l'Animation",
     adminThemesCatalogTitle: "3. Catalogue des Thèmes Existants",
     adminThemesNoThumbnail: "Pas de miniature",
-    adminThemesAssociatedAnimations: "Animations associées ({count}) :"
+    adminThemesAssociatedAnimations: "Animations associées ({count}) :",
+    startShowChooseThemeTitle: "Choisir l'ambiance du Show",
+    startShowChooseThemeDesc: "Sélectionnez le thème visuel qui sera diffusé sur grand écran.",
+    startShowNoThemes: "Aucun thème n'est disponible. Demandez à l'administrateur d'en créer un.",
+    scanToSend: "Scannez pour envoyer"
   }
 }
 

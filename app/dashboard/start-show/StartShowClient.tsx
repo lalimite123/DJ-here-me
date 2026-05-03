@@ -256,7 +256,7 @@ export default function StartShowClient() {
   }, [displayQueue, activeIndex, showActive, selectedThemeId, themes])
 
   const startShow = async () => {
-    if (!selectedThemeId) return alert("Veuillez choisir un thème")
+    if (!selectedThemeId) return alert(t('adminThemesChooseTheme'))
     setLoading(true)
     try {
       const response = await fetch('/api/shows', {
@@ -354,12 +354,12 @@ export default function StartShowClient() {
       {!showActive && (
         <div className="absolute inset-0 z-50 bg-gray-900 overflow-y-auto p-8">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-4xl font-bold text-white mb-2">Choisir l'ambiance du Show</h1>
-            <p className="text-gray-400 mb-8">Sélectionnez le thème visuel qui sera diffusé sur grand écran.</p>
+            <h1 className="text-4xl font-bold text-white mb-2">{t('startShowChooseThemeTitle')}</h1>
+            <p className="text-gray-400 mb-8">{t('startShowChooseThemeDesc')}</p>
 
             {themes.length === 0 ? (
               <div className="bg-gray-800 p-8 rounded-xl text-center">
-                <p className="text-gray-400 mb-4">Aucun thème n'est disponible. Demandez à l'administrateur d'en créer un.</p>
+                <p className="text-gray-400 mb-4">{t('startShowNoThemes')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
@@ -373,7 +373,7 @@ export default function StartShowClient() {
                       {theme.thumbnailUrl ? (
                         <img src={theme.thumbnailUrl} alt={theme.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-gray-500">Pas de miniature</div>
+                        <div className="flex items-center justify-center h-full text-gray-500">{t('adminThemesNoThumbnail')}</div>
                       )}
                       <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black to-transparent p-4">
                         <h3 className="text-white font-bold">{theme.name}</h3>
