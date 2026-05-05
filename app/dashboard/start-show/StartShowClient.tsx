@@ -333,21 +333,47 @@ export default function StartShowClient() {
 
   const currentTheme = themes.find(t => t.id === selectedThemeId)
 
+  const isYouTubeUrl = (url: string) => {
+    return url.includes('youtube.com') || url.includes('youtu.be')
+  }
+
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  const activeVideoUrl = spectatorTakeoverUrl || currentTheme?.backgroundVideoUrl || ''
+  const isYT = isYouTubeUrl(activeVideoUrl)
+  const ytId = isYT ? getYouTubeId(activeVideoUrl) : null
+
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-black">
       
       {/* BACKGROUND VIDÉO (Base ou Takeover) */}
       {showActive && currentTheme && (
-        <video 
-          key={spectatorTakeoverUrl ? 'takeover' : 'background'} // Force le rechargement de la vidéo quand ça change
-          src={spectatorTakeoverUrl || currentTheme.backgroundVideoUrl} 
-          autoPlay 
-          loop 
-          muted 
-          playsInline 
-          className="absolute inset-0 w-full h-full object-cover z-0"
-          style={videoAudioStyle}
-        />
+        <>
+          {isYT && ytId ? (
+            <iframe
+              key={spectatorTakeoverUrl ? 'takeover-yt' : 'background-yt'}
+              src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&modestbranding=1&showinfo=0`}
+              allow="autoplay; encrypted-media"
+              className="absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-0 pointer-events-none"
+              style={videoAudioStyle}
+            />
+          ) : (
+            <video 
+              key={spectatorTakeoverUrl ? 'takeover' : 'background'} // Force le rechargement de la vidéo quand ça change
+              src={activeVideoUrl} 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="absolute inset-0 w-full h-full object-cover z-0"
+              style={videoAudioStyle}
+            />
+          )}
+        </>
       )}
 
       {/* --- DASHBOARD DJ AVANT LE LANCEMENT (SELECTION DU THEME) --- */}

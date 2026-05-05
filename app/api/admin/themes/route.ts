@@ -19,27 +19,40 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;
-    const bgVideo = formData.get('backgroundVideo') as File;
+    const bgVideo = formData.get('backgroundVideo') as File | null;
+    const youtubeUrl = formData.get('youtubeUrl') as string | null;
     const thumbnail = formData.get('thumbnail') as File | null;
 
-    if (!name || !bgVideo) {
-      return NextResponse.json({ error: 'Le nom et la vidéo sont requis' }, { status: 400 });
+    if (!name || (!bgVideo && !youtubeUrl)) {
+      return NextResponse.json({ error: 'Le nom et la vidéo (fichier ou URL) sont requis' }, { status: 400 });
     }
 
-    // 1. Définir et créer le dossier d'upload (public/uploads/themes)
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'themes');
-    await mkdir(uploadsDir, { recursive: true });
+    let backgroundVideoUrl = '';
 
-    // 2. Sauvegarder la vidéo sur le disque
-    const bgVideoBuffer = Buffer.from(await bgVideo.arrayBuffer());
-    // Nom de fichier unique
-    const bgVideoFilename = `${Date.now()}-${bgVideo.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
-    await writeFile(path.join(uploadsDir, bgVideoFilename), bgVideoBuffer);
-    const backgroundVideoUrl = `/uploads/themes/${bgVideoFilename}`;
+    // Si on a un lien YouTube
+    if (youtubeUrl) {
+      backgroundVideoUrl = youtubeUrl;
+    } 
+    // Sinon, c'est un upload de fichier
+    else if (bgVideo) {
+      // 1. Définir et créer le dossier d'upload (public/uploads/themes)
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'themes');
+      await mkdir(uploadsDir, { recursive: true });
+
+      // 2. Sauvegarder la vidéo sur le disque
+      const bgVideoBuffer = Buffer.from(await bgVideo.arrayBuffer());
+      // Nom de fichier unique
+      const bgVideoFilename = `${Date.now()}-${bgVideo.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+      await writeFile(path.join(uploadsDir, bgVideoFilename), bgVideoBuffer);
+      backgroundVideoUrl = `/uploads/themes/${bgVideoFilename}`;
+    }
 
     // 3. Sauvegarder la miniature sur le disque (si elle existe)
     let thumbnailUrl = null;
     if (thumbnail) {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'themes');
+      await mkdir(uploadsDir, { recursive: true });
+      
       const thumbBuffer = Buffer.from(await thumbnail.arrayBuffer());
       const thumbFilename = `${Date.now()}-${thumbnail.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
       await writeFile(path.join(uploadsDir, thumbFilename), thumbBuffer);

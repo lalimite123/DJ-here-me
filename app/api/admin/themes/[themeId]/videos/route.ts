@@ -20,10 +20,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ the
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const priceStr = formData.get('price') as string;
-    const videoFile = formData.get('video') as File;
+    const videoFile = formData.get('video') as File | null;
+    const youtubeUrl = formData.get('youtubeUrl') as string | null;
 
-    if (!name || !videoFile || !priceStr) {
-      return NextResponse.json({ error: 'Le nom, la vidéo et le prix sont requis' }, { status: 400 });
+    if (!name || (!videoFile && !youtubeUrl) || !priceStr) {
+      return NextResponse.json({ error: 'Le nom, la vidéo (fichier ou URL) et le prix sont requis' }, { status: 400 });
     }
 
     const theme = await prisma.theme.findUnique({ where: { id: themeId } });
@@ -31,15 +32,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ the
       return NextResponse.json({ error: 'Thème introuvable' }, { status: 404 });
     }
 
-    // 1. Dossier d'upload pour les takeovers
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'takeovers');
-    await mkdir(uploadsDir, { recursive: true });
+    let videoUrl = '';
 
-    // 2. Sauvegarder la vidéo
-    const videoBuffer = Buffer.from(await videoFile.arrayBuffer());
-    const videoFilename = `${Date.now()}-${videoFile.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
-    await writeFile(path.join(uploadsDir, videoFilename), videoBuffer);
-    const videoUrl = `/uploads/takeovers/${videoFilename}`;
+    if (youtubeUrl) {
+      videoUrl = youtubeUrl;
+    } else if (videoFile) {
+      // 1. Dossier d'upload pour les takeovers
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'takeovers');
+      await mkdir(uploadsDir, { recursive: true });
+
+      // 2. Sauvegarder la vidéo
+      const videoBuffer = Buffer.from(await videoFile.arrayBuffer());
+      const videoFilename = `${Date.now()}-${videoFile.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+      await writeFile(path.join(uploadsDir, videoFilename), videoBuffer);
+      videoUrl = `/uploads/takeovers/${videoFilename}`;
+    }
 
     const themeVideo = await prisma.themeVideo.create({
       data: {

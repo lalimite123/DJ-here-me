@@ -28,14 +28,18 @@ export default function ThemeManagerClient() {
   // États pour le formulaire principal (Thème)
   const [themeName, setThemeName] = useState('')
   const [themeDesc, setThemeDesc] = useState('')
+  const [bgVideoSourceType, setBgVideoSourceType] = useState<'upload' | 'youtube'>('upload')
   const [bgVideoFile, setBgVideoFile] = useState<File | null>(null)
+  const [bgVideoYoutubeUrl, setBgVideoYoutubeUrl] = useState('')
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
 
   // États pour l'ajout d'une sous-vidéo (Takeover) à un thème existant
   const [selectedThemeId, setSelectedThemeId] = useState<string | null>(null)
   const [takeoverName, setTakeoverName] = useState('')
   const [takeoverPrice, setTakeoverPrice] = useState(5)
+  const [takeoverSourceType, setTakeoverSourceType] = useState<'upload' | 'youtube'>('upload')
   const [takeoverFile, setTakeoverFile] = useState<File | null>(null)
+  const [takeoverYoutubeUrl, setTakeoverYoutubeUrl] = useState('')
 
   useEffect(() => {
     fetchThemes()
@@ -60,7 +64,9 @@ export default function ThemeManagerClient() {
 
   const handleCreateTheme = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!themeName || !bgVideoFile) return alert(t('adminThemesNameVideoRequired'))
+    if (!themeName) return alert(t('adminThemesNameVideoRequired'))
+    if (bgVideoSourceType === 'upload' && !bgVideoFile) return alert(t('adminThemesNameVideoRequired'))
+    if (bgVideoSourceType === 'youtube' && !bgVideoYoutubeUrl) return alert(t('adminThemesNameVideoRequired'))
 
     setLoading(true)
 
@@ -68,7 +74,11 @@ export default function ThemeManagerClient() {
       const formData = new FormData()
       formData.append('name', themeName)
       if (themeDesc) formData.append('description', themeDesc)
-      formData.append('backgroundVideo', bgVideoFile)
+      if (bgVideoSourceType === 'upload' && bgVideoFile) {
+        formData.append('backgroundVideo', bgVideoFile)
+      } else if (bgVideoSourceType === 'youtube' && bgVideoYoutubeUrl) {
+        formData.append('youtubeUrl', bgVideoYoutubeUrl)
+      }
       if (thumbnailFile) formData.append('thumbnail', thumbnailFile)
 
       console.log("Envoi au serveur...")
@@ -82,6 +92,7 @@ export default function ThemeManagerClient() {
         setThemeName('')
         setThemeDesc('')
         setBgVideoFile(null)
+        setBgVideoYoutubeUrl('')
         setThumbnailFile(null)
         fetchThemes()
       } else {
@@ -98,7 +109,9 @@ export default function ThemeManagerClient() {
 
   const handleAddTakeover = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedThemeId || !takeoverName || !takeoverFile) return alert(t('adminThemesFillAllFields'))
+    if (!selectedThemeId || !takeoverName) return alert(t('adminThemesFillAllFields'))
+    if (takeoverSourceType === 'upload' && !takeoverFile) return alert(t('adminThemesFillAllFields'))
+    if (takeoverSourceType === 'youtube' && !takeoverYoutubeUrl) return alert(t('adminThemesFillAllFields'))
 
     setLoading(true)
 
@@ -106,7 +119,11 @@ export default function ThemeManagerClient() {
       const formData = new FormData()
       formData.append('name', takeoverName)
       formData.append('price', takeoverPrice.toString())
-      formData.append('video', takeoverFile)
+      if (takeoverSourceType === 'upload' && takeoverFile) {
+        formData.append('video', takeoverFile)
+      } else if (takeoverSourceType === 'youtube' && takeoverYoutubeUrl) {
+        formData.append('youtubeUrl', takeoverYoutubeUrl)
+      }
 
       const res = await fetch(`/api/admin/themes/${selectedThemeId}/videos`, {
         method: 'POST',
@@ -118,6 +135,7 @@ export default function ThemeManagerClient() {
         setTakeoverName('')
         setTakeoverPrice(5)
         setTakeoverFile(null)
+        setTakeoverYoutubeUrl('')
         fetchThemes()
       } else {
         const err = await res.json()
@@ -161,20 +179,62 @@ export default function ThemeManagerClient() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesMainVideoLabel')}</label>
-            <input 
-              type="file" 
-              accept="video/*"
-              required
-              onChange={e => setBgVideoFile(e.target.files?.[0] || null)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
-            />
-            <p className="text-xs text-gray-400 mt-1">{t('adminThemesVideoSavedDirectly')}</p>
+            <label className="block text-sm font-medium text-gray-300 mb-2">{t('adminThemesVideoSourceLabel')}</label>
+            <div className="flex gap-4 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer text-white">
+                <input 
+                  type="radio" 
+                  name="bgSourceType" 
+                  checked={bgVideoSourceType === 'upload'} 
+                  onChange={() => setBgVideoSourceType('upload')}
+                  className="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-600 focus:ring-2"
+                />
+                {t('adminThemesSourceUpload')}
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-white">
+                <input 
+                  type="radio" 
+                  name="bgSourceType" 
+                  checked={bgVideoSourceType === 'youtube'} 
+                  onChange={() => setBgVideoSourceType('youtube')}
+                  className="w-4 h-4 text-purple-600 bg-gray-800 border-gray-600 focus:ring-purple-600 focus:ring-2"
+                />
+                {t('adminThemesSourceYoutube')}
+              </label>
+            </div>
+
+              {bgVideoSourceType === 'upload' ? (
+              <div key="upload-bg">
+                <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesMainVideoLabel')}</label>
+                <input 
+                  type="file" 
+                  accept="video/*"
+                  required
+                  onChange={e => setBgVideoFile(e.target.files?.[0] || null)}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
+                />
+                <p className="text-xs text-gray-400 mt-1">{t('adminThemesVideoSavedDirectly')}</p>
+              </div>
+            ) : (
+              <div key="youtube-bg">
+                <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesYoutubeLabel')}</label>
+                <input 
+                  type="url" 
+                  required
+                  placeholder={t('adminThemesYoutubePlaceholder')}
+                  value={bgVideoYoutubeUrl}
+                  onChange={e => setBgVideoYoutubeUrl(e.target.value)}
+                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
+                />
+                <p className="text-xs text-gray-400 mt-1">La vidéo ne sera pas téléchargée, elle sera lue directement depuis YouTube (0 latence).</p>
+              </div>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesThumbnailLabel')}</label>
             <input 
+              key={bgVideoSourceType} // Fix pour forcer le composant à se re-rendre correctement
               type="file" 
               accept="image/*"
               onChange={e => setThumbnailFile(e.target.files?.[0] || null)}
@@ -242,15 +302,55 @@ export default function ThemeManagerClient() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesAnimationVideoLabel')}</label>
-              <input 
-                type="file" 
-                accept="video/*"
-                required
-                onChange={e => setTakeoverFile(e.target.files?.[0] || null)}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
-              />
-              <p className="text-xs text-gray-400 mt-1">{t('adminThemesSavedDirectly')}</p>
+              <label className="block text-sm font-medium text-gray-300 mb-2">{t('adminThemesVideoSourceLabel')}</label>
+              <div className="flex gap-4 mb-3">
+                <label className="flex items-center gap-2 cursor-pointer text-white">
+                  <input 
+                    type="radio" 
+                    name="tkSourceType" 
+                    checked={takeoverSourceType === 'upload'} 
+                    onChange={() => setTakeoverSourceType('upload')}
+                    className="w-4 h-4 text-green-600 bg-gray-800 border-gray-600 focus:ring-green-600 focus:ring-2"
+                  />
+                  {t('adminThemesSourceUpload')}
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-white">
+                  <input 
+                    type="radio" 
+                    name="tkSourceType" 
+                    checked={takeoverSourceType === 'youtube'} 
+                    onChange={() => setTakeoverSourceType('youtube')}
+                    className="w-4 h-4 text-green-600 bg-gray-800 border-gray-600 focus:ring-green-600 focus:ring-2"
+                  />
+                  {t('adminThemesSourceYoutube')}
+                </label>
+              </div>
+
+              {takeoverSourceType === 'upload' ? (
+                <div key="upload-tk">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesAnimationVideoLabel')}</label>
+                  <input 
+                    type="file" 
+                    accept="video/*"
+                    required
+                    onChange={e => setTakeoverFile(e.target.files?.[0] || null)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{t('adminThemesSavedDirectly')}</p>
+                </div>
+              ) : (
+                <div key="youtube-tk">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesYoutubeLabel')}</label>
+                  <input 
+                    type="url" 
+                    required
+                    placeholder={t('adminThemesYoutubePlaceholder')}
+                    value={takeoverYoutubeUrl}
+                    onChange={e => setTakeoverYoutubeUrl(e.target.value)}
+                    className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"
+                  />
+                </div>
+              )}
             </div>
 
             <button 
