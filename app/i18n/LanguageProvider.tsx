@@ -205,7 +205,8 @@ const translations: Record<Language, Dictionary> = {
     startShowChooseThemeTitle: "Show'un atmosferini seçin",
     startShowChooseThemeDesc: "Büyük ekranda yayınlanacak görsel temayı seçin.",
     startShowNoThemes: "Kullanılabilir tema yok. Yöneticiden bir tane oluşturmasını isteyin.",
-    scanToSend: "Mesaj göndermek için tarayın"
+    scanToSend: "Mesaj göndermek için tarayın",
+    preparingShow: "Show Hazırlanıyor..."
   },
   en: {
     languageLabel: "Language",
@@ -405,7 +406,8 @@ const translations: Record<Language, Dictionary> = {
     startShowChooseThemeTitle: "Choose the Show's atmosphere",
     startShowChooseThemeDesc: "Select the visual theme that will be broadcasted on the big screen.",
     startShowNoThemes: "No themes available. Ask the administrator to create one.",
-    scanToSend: "Scan to send a message"
+    scanToSend: "Scan to send a message",
+    preparingShow: "Preparing Show..."
   },
   de: {
     languageLabel: "Sprache",
@@ -605,7 +607,8 @@ const translations: Record<Language, Dictionary> = {
     startShowChooseThemeTitle: "Wähle die Atmosphäre der Show",
     startShowChooseThemeDesc: "Wähle das visuelle Thema, das auf der großen Leinwand übertragen wird.",
     startShowNoThemes: "Keine Themen verfügbar. Bitten Sie den Administrator, eines zu erstellen.",
-    scanToSend: "Scannen, um eine Nachricht zu senden"
+    scanToSend: "Scannen, um eine Nachricht zu senden",
+    preparingShow: "Show wird vorbereitet..."
   },
   fr: {
     languageLabel: "Langue",
@@ -805,7 +808,8 @@ const translations: Record<Language, Dictionary> = {
     startShowChooseThemeTitle: "Choisir l'ambiance du Show",
     startShowChooseThemeDesc: "Sélectionnez le thème visuel qui sera diffusé sur grand écran.",
     startShowNoThemes: "Aucun thème n'est disponible. Demandez à l'administrateur d'en créer un.",
-    scanToSend: "Scannez pour envoyer"
+    scanToSend: "Scannez pour envoyer",
+    preparingShow: "Préparation du Show..."
   }
 }
 

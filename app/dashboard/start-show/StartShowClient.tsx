@@ -46,6 +46,7 @@ export default function StartShowClient() {
   const [showActive, setShowActive] = useState(false)
   const [showId, setShowId] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isPreparing, setIsPreparing] = useState(false)
   const [showUrl, setShowUrl] = useState('')
   const [micError, setMicError] = useState<string | null>(null)
 
@@ -258,6 +259,8 @@ export default function StartShowClient() {
   const startShow = async () => {
     if (!selectedThemeId) return alert(t('adminThemesChooseTheme'))
     setLoading(true)
+    setIsPreparing(true)
+    
     try {
       const response = await fetch('/api/shows', {
         method: 'POST',
@@ -267,12 +270,25 @@ export default function StartShowClient() {
           themeId: selectedThemeId
         })
       })
-      if (!response.ok) return alert(t('showStartError'))
+      if (!response.ok) {
+        setIsPreparing(false)
+        return alert(t('showStartError'))
+      }
+      
       const data = await response.json()
       setShowId(data.id)
+      
+      // On affiche le show (qui va charger l'iframe en arrière-plan sous l'overlay)
       setShowActive(true)
-      startAudio() // Tente de démarrer le micro pour les vibrations vidéo
+      startAudio() 
+
+      // On garde l'overlay de chargement pendant 3 secondes pour laisser le temps à YouTube de bufferiser
+      setTimeout(() => {
+        setIsPreparing(false)
+      }, 3000)
+
     } catch {
+      setIsPreparing(false)
       alert(t('showStartError'))
     } finally {
       setLoading(false)
@@ -343,35 +359,71 @@ export default function StartShowClient() {
     return (match && match[2].length === 11) ? match[2] : null;
   }
 
-  const activeVideoUrl = spectatorTakeoverUrl || currentTheme?.backgroundVideoUrl || ''
-  const isYT = isYouTubeUrl(activeVideoUrl)
-  const ytId = isYT ? getYouTubeId(activeVideoUrl) : null
+  // Extraction des informations pour le thème de fond ET pour le takeover s'il existe
+  const bgVideoUrl = currentTheme?.backgroundVideoUrl || ''
+  const isBgYT = isYouTubeUrl(bgVideoUrl)
+  const bgYtId = isBgYT ? getYouTubeId(bgVideoUrl) : null
+
+  const tkVideoUrl = spectatorTakeoverUrl || ''
+  const isTkYT = tkVideoUrl ? isYouTubeUrl(tkVideoUrl) : false
+  const tkYtId = isTkYT ? getYouTubeId(tkVideoUrl) : null
 
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-black">
       
+      {/* OVERLAY DE PREPARATION DU SHOW */}
+      {isPreparing && (
+        <div className="absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center transition-opacity duration-500">
+          <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+          <h2 className="text-3xl font-bold text-white tracking-widest animate-pulse">{t('preparingShow')}</h2>
+        </div>
+      )}
+
       {/* BACKGROUND VIDÉO (Base ou Takeover) */}
       {showActive && currentTheme && (
         <>
-          {isYT && ytId ? (
+          {/* LECTEUR DU THEME DE FOND (Toujours rendu, masqué si Takeover) */}
+          {isBgYT && bgYtId ? (
             <iframe
-              key={spectatorTakeoverUrl ? 'takeover-yt' : 'background-yt'}
-              src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${ytId}&modestbranding=1&showinfo=0`}
+              src={`https://www.youtube.com/embed/${bgYtId}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&loop=1&playlist=${bgYtId}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`}
               allow="autoplay; encrypted-media"
-              className="absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-0 pointer-events-none"
+              className={`absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-0 pointer-events-none select-none transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}
               style={videoAudioStyle}
             />
           ) : (
             <video 
-              key={spectatorTakeoverUrl ? 'takeover' : 'background'} // Force le rechargement de la vidéo quand ça change
-              src={activeVideoUrl} 
+              src={bgVideoUrl} 
               autoPlay 
               loop 
               muted 
               playsInline 
-              className="absolute inset-0 w-full h-full object-cover z-0"
+              className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}
               style={videoAudioStyle}
             />
+          )}
+
+          {/* LECTEUR DU TAKEOVER (Rendu par-dessus uniquement quand actif) */}
+          {spectatorTakeoverUrl && (
+            <>
+              {isTkYT && tkYtId ? (
+                <iframe
+                  src={`https://www.youtube.com/embed/${tkYtId}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&loop=1&playlist=${tkYtId}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`}
+                  allow="autoplay; encrypted-media"
+                  className="absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-10 pointer-events-none select-none animate-fade-in"
+                  style={videoAudioStyle}
+                />
+              ) : (
+                <video 
+                  src={tkVideoUrl} 
+                  autoPlay 
+                  loop 
+                  muted 
+                  playsInline 
+                  className="absolute inset-0 w-full h-full object-cover z-10 animate-fade-in"
+                  style={videoAudioStyle}
+                />
+              )}
+            </>
           )}
         </>
       )}
