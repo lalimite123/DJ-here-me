@@ -58,6 +58,9 @@ export default function StartShowClient() {
   const [spectatorTakeoverUrl, setSpectatorTakeoverUrl] = useState<string | null>(null)
   const takeoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  const [bgYtPlaying, setBgYtPlaying] = useState(false)
+  const [tkYtPlaying, setTkYtPlaying] = useState(false)
+
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 1200,
     height: typeof window !== 'undefined' ? window.innerHeight : 800
@@ -416,6 +419,7 @@ export default function StartShowClient() {
             },
             onStateChange: (event: any) => {
               if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                setBgYtPlaying(true);
                 // Polling pour relancer la vidéo AVANT qu'elle n'atteigne la fin (Seamless Loop)
                 if (checkYTInterval) clearInterval(checkYTInterval);
                 checkYTInterval = setInterval(() => {
@@ -485,6 +489,7 @@ export default function StartShowClient() {
             },
             onStateChange: (event: any) => {
               if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                setTkYtPlaying(true);
                 if (checkTkYTInterval) clearInterval(checkTkYTInterval);
                 checkTkYTInterval = setInterval(() => {
                   if (!event.target.getCurrentTime || !event.target.getDuration) return;
@@ -521,6 +526,7 @@ export default function StartShowClient() {
       if (tkPlayerRef.current && tkPlayerRef.current.destroy) {
         tkPlayerRef.current.destroy();
       }
+      setTkYtPlaying(false);
     };
   }, [spectatorTakeoverUrl, isTkYT, tkYtId, showActive]);
 
@@ -542,10 +548,10 @@ export default function StartShowClient() {
           {/* LECTEUR DU THEME DE FOND (Toujours rendu, masqué si Takeover) */}
           {isBgYT && bgYtId ? (
             <div
-              className={`absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-0 pointer-events-none select-none transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}
+              className={`absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-0 pointer-events-none select-none transition-opacity duration-500 ${(spectatorTakeoverUrl || !bgYtPlaying) ? 'opacity-0' : 'opacity-100'}`}
               style={videoAudioStyle}
             >
-              <div id="yt-bg-player" className="w-full h-full" />
+              <div id="yt-bg-player" className="w-full h-full pointer-events-none" />
             </div>
           ) : (
             <video 
@@ -564,10 +570,10 @@ export default function StartShowClient() {
             <>
               {isTkYT && tkYtId ? (
                 <div
-                  className="absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-10 pointer-events-none select-none animate-fade-in"
+                  className={`absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-10 pointer-events-none select-none transition-opacity duration-500 ${!tkYtPlaying ? 'opacity-0' : 'opacity-100'}`}
                   style={videoAudioStyle}
                 >
-                  <div id="yt-tk-player" className="w-full h-full" />
+                  <div id="yt-tk-player" className="w-full h-full pointer-events-none" />
                 </div>
               ) : (
                 <video 
@@ -576,7 +582,7 @@ export default function StartShowClient() {
                   loop 
                   muted 
                   playsInline 
-                  className="absolute inset-0 w-full h-full object-cover z-10 animate-fade-in"
+                  className="absolute inset-0 w-full h-full object-cover z-10 animate-fade-in pointer-events-none"
                   style={videoAudioStyle}
                 />
               )}
