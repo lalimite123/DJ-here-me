@@ -359,7 +359,6 @@ export default function StartShowClient() {
     return (match && match[2].length === 11) ? match[2] : null;
   }
 
-  // Extraction des informations pour le thème de fond ET pour le takeover s'il existe
   const bgVideoUrl = currentTheme?.backgroundVideoUrl || ''
   const isBgYT = isYouTubeUrl(bgVideoUrl)
   const bgYtId = isBgYT ? getYouTubeId(bgVideoUrl) : null
@@ -367,6 +366,164 @@ export default function StartShowClient() {
   const tkVideoUrl = spectatorTakeoverUrl || ''
   const isTkYT = tkVideoUrl ? isYouTubeUrl(tkVideoUrl) : false
   const tkYtId = isTkYT ? getYouTubeId(tkVideoUrl) : null
+
+  // Ref pour injecter l'API YouTube dynamiquement
+  const ytApiInjected = useRef(false)
+  const bgPlayerRef = useRef<any>(null)
+  const tkPlayerRef = useRef<any>(null)
+
+  // Injecter le script YouTube IFrame API une seule fois
+  useEffect(() => {
+    if (showActive && (isBgYT || isTkYT) && !ytApiInjected.current) {
+      const tag = document.createElement('script')
+      tag.src = 'https://www.youtube.com/iframe_api'
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+      if (firstScriptTag && firstScriptTag.parentNode) {
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+      } else {
+        document.head.appendChild(tag)
+      }
+      ytApiInjected.current = true
+    }
+  }, [showActive, isBgYT, isTkYT])
+
+  // Initialiser le lecteur de fond (Background) avec l'API YouTube
+  useEffect(() => {
+    if (!showActive || !isBgYT || !bgYtId) return;
+    
+    let checkYTInterval: NodeJS.Timeout;
+    
+    const initPlayer = () => {
+      if ((window as any).YT && (window as any).YT.Player) {
+        bgPlayerRef.current = new (window as any).YT.Player('yt-bg-player', {
+          videoId: bgYtId,
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            loop: 1,
+            playlist: bgYtId, // Nécessaire pour le loop
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3
+          },
+          events: {
+            onReady: (event: any) => {
+              event.target.playVideo();
+            },
+            onStateChange: (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                // Polling pour relancer la vidéo AVANT qu'elle n'atteigne la fin (Seamless Loop)
+                if (checkYTInterval) clearInterval(checkYTInterval);
+                checkYTInterval = setInterval(() => {
+                  if (!event.target.getCurrentTime || !event.target.getDuration) return;
+                  const currentTime = event.target.getCurrentTime();
+                  const duration = event.target.getDuration();
+                  // Si on est à moins de 0.4 secondes de la fin, on force le retour au début
+                  if (duration > 0 && (duration - currentTime) <= 0.4) {
+                    event.target.seekTo(0);
+                  }
+                }, 100);
+              } else {
+                if (checkYTInterval) clearInterval(checkYTInterval);
+              }
+
+              // Fallback au cas où le polling raterait
+              if (event.data === (window as any).YT.PlayerState.ENDED) {
+                event.target.seekTo(0);
+                event.target.playVideo();
+              }
+            }
+          }
+        });
+      }
+    };
+
+    if ((window as any).YT && (window as any).YT.Player) {
+      initPlayer();
+    } else {
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
+    }
+
+    return () => {
+      if (checkYTInterval) clearInterval(checkYTInterval);
+      if (bgPlayerRef.current && bgPlayerRef.current.destroy) {
+        bgPlayerRef.current.destroy();
+      }
+    };
+  }, [showActive, isBgYT, bgYtId]);
+
+  // Initialiser le lecteur Takeover avec l'API YouTube
+  useEffect(() => {
+    if (!showActive || !spectatorTakeoverUrl || !isTkYT || !tkYtId) return;
+
+    let checkTkYTInterval: NodeJS.Timeout;
+
+    const initPlayer = () => {
+      if ((window as any).YT && (window as any).YT.Player) {
+        tkPlayerRef.current = new (window as any).YT.Player('yt-tk-player', {
+          videoId: tkYtId,
+          playerVars: {
+            autoplay: 1,
+            mute: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            loop: 1,
+            playlist: tkYtId,
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3
+          },
+          events: {
+            onReady: (event: any) => {
+              event.target.playVideo();
+            },
+            onStateChange: (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                if (checkTkYTInterval) clearInterval(checkTkYTInterval);
+                checkTkYTInterval = setInterval(() => {
+                  if (!event.target.getCurrentTime || !event.target.getDuration) return;
+                  const currentTime = event.target.getCurrentTime();
+                  const duration = event.target.getDuration();
+                  if (duration > 0 && (duration - currentTime) <= 0.4) {
+                    event.target.seekTo(0);
+                  }
+                }, 100);
+              } else {
+                if (checkTkYTInterval) clearInterval(checkTkYTInterval);
+              }
+
+              if (event.data === (window as any).YT.PlayerState.ENDED) {
+                event.target.seekTo(0);
+                event.target.playVideo();
+              }
+            }
+          }
+        });
+      }
+    };
+
+    // On s'assure que l'API est dispo (elle devrait l'être via le bgPlayer)
+    if ((window as any).YT && (window as any).YT.Player) {
+      initPlayer();
+    } else {
+      // Cas de fallback
+      setTimeout(initPlayer, 500); 
+    }
+
+    return () => {
+      if (checkTkYTInterval) clearInterval(checkTkYTInterval);
+      if (tkPlayerRef.current && tkPlayerRef.current.destroy) {
+        tkPlayerRef.current.destroy();
+      }
+    };
+  }, [spectatorTakeoverUrl, isTkYT, tkYtId, showActive]);
+
 
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-black">
@@ -384,12 +541,12 @@ export default function StartShowClient() {
         <>
           {/* LECTEUR DU THEME DE FOND (Toujours rendu, masqué si Takeover) */}
           {isBgYT && bgYtId ? (
-            <iframe
-              src={`https://www.youtube.com/embed/${bgYtId}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&loop=1&playlist=${bgYtId}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`}
-              allow="autoplay; encrypted-media"
+            <div
               className={`absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-0 pointer-events-none select-none transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}
               style={videoAudioStyle}
-            />
+            >
+              <div id="yt-bg-player" className="w-full h-full" />
+            </div>
           ) : (
             <video 
               src={bgVideoUrl} 
@@ -406,12 +563,12 @@ export default function StartShowClient() {
           {spectatorTakeoverUrl && (
             <>
               {isTkYT && tkYtId ? (
-                <iframe
-                  src={`https://www.youtube.com/embed/${tkYtId}?autoplay=1&mute=1&controls=0&disablekb=1&fs=0&loop=1&playlist=${tkYtId}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`}
-                  allow="autoplay; encrypted-media"
+                <div
                   className="absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-10 pointer-events-none select-none animate-fade-in"
                   style={videoAudioStyle}
-                />
+                >
+                  <div id="yt-tk-player" className="w-full h-full" />
+                </div>
               ) : (
                 <video 
                   src={tkVideoUrl} 
