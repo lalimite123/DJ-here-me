@@ -9,6 +9,11 @@ import { useRouter } from 'next/navigation'
 import { useLanguage } from '../../i18n/LanguageProvider'
 import Pusher from 'pusher-js'
 
+import Orb from './animations/Orb'
+import BeatSceneWrapper from './animations/BeatSceneWrapper'
+import Beat2SceneWrapper from './animations/Beat2SceneWrapper'
+import Disco2Wrapper from './animations/Disco2Wrapper'
+
 type LiveMessage = {
   id: string
   displayName: string
@@ -34,6 +39,13 @@ type ThemeVideo = {
   price: number
   videoUrl: string
 }
+
+const STATIC_THEMES: Theme[] = [
+  { id: 'static-orb', name: '3D Orb (Audio React)', description: 'Génératif 3D', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
+  { id: 'static-beat', name: 'Beat Scene (Minimal)', description: 'SVG Reactif', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
+  { id: 'static-beat2', name: 'Beat 2 (Butterfly)', description: 'SVG Symétrique', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
+  { id: 'static-disco2', name: 'Disco Grid', description: 'Canvas Reactif', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
+]
 
 export default function StartShowClient() {
   const router = useRouter()
@@ -88,14 +100,17 @@ export default function StartShowClient() {
       const res = await fetch('/api/admin/themes')
       const data = await res.json()
       if (Array.isArray(data)) {
-        setThemes(data)
-        if (data.length > 0) setSelectedThemeId(data[0].id)
+        const allThemes = [...STATIC_THEMES, ...data]
+        setThemes(allThemes)
+        if (allThemes.length > 0) setSelectedThemeId(allThemes[0].id)
       } else {
-        setThemes([])
+        setThemes([...STATIC_THEMES])
+        setSelectedThemeId(STATIC_THEMES[0].id)
       }
     } catch (err) {
       console.error('Erreur chargement thèmes', err)
-      setThemes([])
+      setThemes([...STATIC_THEMES])
+      setSelectedThemeId(STATIC_THEMES[0].id)
     }
   }
 
@@ -265,12 +280,13 @@ export default function StartShowClient() {
     setIsPreparing(true)
     
     try {
+      const isStatic = selectedThemeId.startsWith('static-')
       const response = await fetch('/api/shows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: `Show - ${new Date().toLocaleString(locale)}`,
-          themeId: selectedThemeId
+          themeId: isStatic ? null : selectedThemeId
         })
       })
       if (!response.ok) {
@@ -546,7 +562,23 @@ export default function StartShowClient() {
       {showActive && currentTheme && (
         <>
           {/* LECTEUR DU THEME DE FOND (Toujours rendu, masqué si Takeover) */}
-          {isBgYT && bgYtId ? (
+          {currentTheme.id === 'static-orb' ? (
+            <div className={`absolute inset-0 w-full h-full z-0 transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}>
+              <Orb bassLevel={audioData.bass} midLevel={audioData.mids} highLevel={audioData.highs} />
+            </div>
+          ) : currentTheme.id === 'static-beat' ? (
+            <div className={`absolute inset-0 w-full h-full z-0 transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}>
+              <BeatSceneWrapper analyser={analyserRef.current} />
+            </div>
+          ) : currentTheme.id === 'static-beat2' ? (
+            <div className={`absolute inset-0 w-full h-full z-0 transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}>
+              <Beat2SceneWrapper analyser={analyserRef.current} />
+            </div>
+          ) : currentTheme.id === 'static-disco2' ? (
+            <div className={`absolute inset-0 w-full h-full z-0 transition-opacity duration-500 ${spectatorTakeoverUrl ? 'opacity-0' : 'opacity-100'}`}>
+              <Disco2Wrapper analyser={analyserRef.current} />
+            </div>
+          ) : isBgYT && bgYtId ? (
             <div
               className={`absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-0 pointer-events-none select-none transition-opacity duration-500 ${(spectatorTakeoverUrl || !bgYtPlaying) ? 'opacity-0' : 'opacity-100'}`}
               style={videoAudioStyle}
@@ -603,26 +635,51 @@ export default function StartShowClient() {
                 <p className="text-gray-400 mb-4">{t('startShowNoThemes')}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-12">
-                {themes.map(theme => (
-                  <div 
-                    key={theme.id}
-                    onClick={() => setSelectedThemeId(theme.id)}
-                    className={`cursor-pointer rounded-xl overflow-hidden border-4 transition-all ${selectedThemeId === theme.id ? 'border-purple-500 scale-105 shadow-2xl shadow-purple-500/50' : 'border-transparent opacity-70 hover:opacity-100'}`}
-                  >
-                    <div className="relative h-48 bg-gray-800">
-                      {theme.thumbnailUrl ? (
-                        <img src={theme.thumbnailUrl} alt={theme.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-gray-500">{t('adminThemesNoThumbnail')}</div>
-                      )}
-                      <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black to-transparent p-4">
-                        <h3 className="text-white font-bold">{theme.name}</h3>
+              <>
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-purple-400 mb-4 uppercase tracking-wider">{t('staticAnimationsCategory')}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {themes.filter(t => t.id.startsWith('static-')).map(theme => (
+                      <div 
+                        key={theme.id}
+                        onClick={() => setSelectedThemeId(theme.id)}
+                        className={`cursor-pointer rounded-xl overflow-hidden border-4 transition-all ${selectedThemeId === theme.id ? 'border-purple-500 scale-105 shadow-2xl shadow-purple-500/50' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                      >
+                        <div className="relative h-48 bg-gray-800">
+                          <div className="flex items-center justify-center h-full text-gray-500">{t('adminThemesNoThumbnail')}</div>
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black to-transparent p-4">
+                            <h3 className="text-white font-bold">{theme.name}</h3>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+
+                <div className="mb-12">
+                  <h2 className="text-2xl font-bold text-purple-400 mb-4 uppercase tracking-wider">{t('customThemesCategory')}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {themes.filter(t => !t.id.startsWith('static-')).map(theme => (
+                      <div 
+                        key={theme.id}
+                        onClick={() => setSelectedThemeId(theme.id)}
+                        className={`cursor-pointer rounded-xl overflow-hidden border-4 transition-all ${selectedThemeId === theme.id ? 'border-purple-500 scale-105 shadow-2xl shadow-purple-500/50' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                      >
+                        <div className="relative h-48 bg-gray-800">
+                          {theme.thumbnailUrl ? (
+                            <img src={theme.thumbnailUrl} alt={theme.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-500">{t('adminThemesNoThumbnail')}</div>
+                          )}
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black to-transparent p-4">
+                            <h3 className="text-white font-bold">{theme.name}</h3>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
 
             <button 
@@ -641,6 +698,13 @@ export default function StartShowClient() {
         <div className="absolute inset-0 z-10 pointer-events-none">
           {/* Overlay gradient pour mieux lire le texte */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+          {/* MINI-VISUALISEUR AUDIO (S'affiche par-dessus les vidéos) */}
+          {currentTheme && !currentTheme.id.startsWith('static-') && (
+            <div className="absolute bottom-6 right-6 w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden border-2 border-white/20 bg-black/40 backdrop-blur-sm pointer-events-none z-20 shadow-[0_0_30px_rgba(136,0,255,0.3)]">
+              <BeatSceneWrapper analyser={analyserRef.current} isMini={true} />
+            </div>
+          )}
 
           {/* QR CODE */}
           {showUrl && (

@@ -1,11 +1,8 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import AuthProvider from './AuthProvider'
 import { LanguageProvider } from './i18n/LanguageProvider'
 import TopBar from './TopBar'
-
-const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Hear Me DJ',
@@ -19,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="tr">
-      <body className={inter.className}>
+      <body className="font-sans">
         <LanguageProvider>
           <AuthProvider>
             <TopBar />
