@@ -54,6 +54,8 @@ export default function StartShowClient() {
 
   const [themes, setThemes] = useState<Theme[]>([])
   const [selectedThemeId, setSelectedThemeId] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<'static' | 'custom'>('static')
+  const [isModalOpen, setIsModalOpen] = useState(false)
   
   const [showActive, setShowActive] = useState(false)
   const [showId, setShowId] = useState('')
@@ -636,34 +638,35 @@ export default function StartShowClient() {
               </div>
             ) : (
               <>
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-purple-400 mb-4 uppercase tracking-wider">{t('staticAnimationsCategory')}</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {themes.filter(t => t.id.startsWith('static-')).map(theme => (
-                      <div 
-                        key={theme.id}
-                        onClick={() => setSelectedThemeId(theme.id)}
-                        className={`cursor-pointer rounded-xl overflow-hidden border-4 transition-all ${selectedThemeId === theme.id ? 'border-purple-500 scale-105 shadow-2xl shadow-purple-500/50' : 'border-transparent opacity-70 hover:opacity-100'}`}
-                      >
-                        <div className="relative h-48 bg-gray-800">
-                          <div className="flex items-center justify-center h-full text-gray-500">{t('adminThemesNoThumbnail')}</div>
-                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black to-transparent p-4">
-                            <h3 className="text-white font-bold">{theme.name}</h3>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                {/* TABS */}
+                <div className="flex space-x-4 mb-8 border-b border-gray-700 pb-4">
+                  <button
+                    onClick={() => setActiveTab('static')}
+                    className={`px-6 py-3 rounded-lg font-bold transition-colors ${activeTab === 'static' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                  >
+                    {t('staticAnimationsCategory')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('custom')}
+                    className={`px-6 py-3 rounded-lg font-bold transition-colors ${activeTab === 'custom' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                  >
+                    {t('customThemesCategory')}
+                  </button>
                 </div>
 
+                {/* THEMES GRID */}
                 <div className="mb-12">
-                  <h2 className="text-2xl font-bold text-purple-400 mb-4 uppercase tracking-wider">{t('customThemesCategory')}</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {themes.filter(t => !t.id.startsWith('static-')).map(theme => (
+                    {themes
+                      .filter(t => activeTab === 'static' ? t.id.startsWith('static-') : !t.id.startsWith('static-'))
+                      .map(theme => (
                       <div 
                         key={theme.id}
-                        onClick={() => setSelectedThemeId(theme.id)}
-                        className={`cursor-pointer rounded-xl overflow-hidden border-4 transition-all ${selectedThemeId === theme.id ? 'border-purple-500 scale-105 shadow-2xl shadow-purple-500/50' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                        onClick={() => {
+                          setSelectedThemeId(theme.id)
+                          setIsModalOpen(true)
+                        }}
+                        className={`cursor-pointer rounded-xl overflow-hidden border-4 transition-all border-transparent opacity-80 hover:opacity-100 hover:scale-105 hover:border-purple-500`}
                       >
                         <div className="relative h-48 bg-gray-800">
                           {theme.thumbnailUrl ? (
@@ -681,14 +684,48 @@ export default function StartShowClient() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
 
-            <button 
-              onClick={startShow}
-              disabled={loading || !selectedThemeId}
-              className="w-full max-w-md mx-auto block bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-4 rounded-full text-xl shadow-lg transition-transform hover:scale-105"
-            >
-              {loading ? t('loading') : t('startShow')}
-            </button>
+      {/* MODAL DE CONFIRMATION DU THEME */}
+      {isModalOpen && selectedThemeId && !showActive && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-2xl">
+            <h2 className="text-2xl font-bold text-white mb-4">
+              {themes.find(t => t.id === selectedThemeId)?.name}
+            </h2>
+            <div className="relative h-48 bg-gray-800 rounded-xl mb-6 overflow-hidden border border-gray-700">
+              {themes.find(t => t.id === selectedThemeId)?.thumbnailUrl ? (
+                <img 
+                  src={themes.find(t => t.id === selectedThemeId)?.thumbnailUrl!} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  {t('adminThemesNoThumbnail')}
+                </div>
+              )}
+            </div>
+            <div className="flex space-x-4">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition-colors"
+              >
+                {t('close')}
+              </button>
+              <button 
+                onClick={() => {
+                  setIsModalOpen(false)
+                  startShow()
+                }}
+                disabled={loading}
+                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-purple-500/30"
+              >
+                {loading ? t('loading') : t('startShow')}
+              </button>
+            </div>
           </div>
         </div>
       )}
