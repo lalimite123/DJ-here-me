@@ -701,7 +701,7 @@ export default function StartShowClient() {
 
           {/* MINI-VISUALISEUR AUDIO (S'affiche par-dessus les vidéos) */}
           {currentTheme && !currentTheme.id.startsWith('static-') && (
-            <div className="absolute bottom-6 right-6 w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden border-2 border-white/20 bg-black/40 backdrop-blur-sm pointer-events-none z-20 shadow-[0_0_30px_rgba(136,0,255,0.3)]">
+            <div className="absolute bottom-6 left-6 w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden border-2 border-white/20 bg-black/40 backdrop-blur-sm pointer-events-none z-20 shadow-[0_0_30px_rgba(136,0,255,0.3)]">
               <BeatSceneWrapper analyser={analyserRef.current} isMini={true} />
             </div>
           )}
