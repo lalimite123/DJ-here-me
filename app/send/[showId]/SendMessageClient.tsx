@@ -119,7 +119,8 @@ export default function SendMessageClient({ show }: { show: ShowWithUser }) {
   const [price, setPrice] = useState(0)
   const [error, setError] = useState("")
 
-  // Nouveaux états pour les effets (Takeover 3D)
+  // Nouveaux états pour les onglets
+  const [activeTab, setActiveTab] = useState<'message' | 'emoji' | 'takeover'>('message')
   const [selectedEffect, setSelectedEffect] = useState<string | null>(null)
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null)
   const [selectedDuration, setSelectedDuration] = useState<number>(5) // Par défaut 5 secondes
@@ -132,6 +133,9 @@ export default function SendMessageClient({ show }: { show: ShowWithUser }) {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [isPaymentStep, setIsPaymentStep] = useState(false)
   const [currentMessageId, setCurrentMessageId] = useState<string | null>(null)
+
+  // Nouveaux états pour l'interface TikTok
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const { t } = useLanguage()
 
@@ -302,37 +306,89 @@ const bannedWords = [
     setClientSecret(null)
   }
   
+  const handleMainSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    
+    if (!displayName) {
+      setError(t('errorName') || "Veuillez entrer votre nom")
+      setActiveTab('message')
+      setIsSheetOpen(true)
+      return
+    }
+    
+    // Si aucun message, aucun emoji et aucun takeover n'est sélectionné
+    if (!message && !selectedEmoji && !selectedEffect) {
+      setError(t('errorMessage') || "Veuillez entrer un message ou sélectionner une animation")
+      setActiveTab('message')
+      setIsSheetOpen(true)
+      return
+    }
+
+    handleSubmit(e as React.FormEvent)
+  }
+
+  const openSheet = (tab: 'message' | 'emoji' | 'takeover') => {
+    setActiveTab(tab)
+    setIsSheetOpen(true)
+  }
+
   return (
-    <div className="page-shell py-10 px-4">
-      <div className="absolute inset-0">
-        <div className="absolute -top-24 left-0 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-[120px]" />
-        <div className="absolute top-24 right-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-[140px]" />
+    <div className="fixed inset-0 bg-black text-white overflow-hidden flex flex-col font-sans selection:bg-purple-500/30">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes slideUpSheet {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        .animate-slide-up-sheet {
+          animation: slideUpSheet 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .tiktok-glass {
+          background: rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+      `}} />
+
+      {/* BACKGROUND ANIMÉ (Immersif) */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] bg-purple-600/30 rounded-full blur-[80px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-[50vw] h-[50vw] bg-pink-600/30 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/60 to-black z-10" />
       </div>
 
-      <div className="relative max-w-md mx-auto">
-        <div className="text-center mb-8">
-          <span className="badge mb-3">{t('liveShow')}</span>
-          <h1 className="text-3xl font-bold">{show.user.name || 'DJ'}</h1>
-          <p className="text-lg text-slate-300 mt-2">{show.title}</p>
-        </div>
-        
-        {sent ? (
-          <div className="card-glass p-7 text-center border border-emerald-500/30">
-            <h2 className="text-xl font-bold mb-4 text-emerald-300">{t('messageSentTitle')}</h2>
-            <p className="mb-6 text-slate-300">{t('messageSentBody')}</p>
-            <button
-              onClick={() => setSent(false)}
-              className="btn-primary"
-            >
-              {t('sendNewMessage')}
-            </button>
+      {sent ? (
+        // ÉCRAN DE SUCCÈS
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+          <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(16,185,129,0.3)] border border-emerald-500/30">
+            <span className="text-5xl">✨</span>
           </div>
-        ) : isPaymentStep && clientSecret ? (
-          <div className="card-glass p-7">
-            <h2 className="text-2xl font-bold mb-6 text-center">Paiement sécurisé</h2>
-            <p className="text-center text-slate-300 mb-6">Montant total: <span className="font-bold text-emerald-300">{price.toFixed(2)}$</span></p>
+          <h2 className="text-3xl font-black mb-4 text-white drop-shadow-lg">{t('messageSentTitle') || 'Envoyé !'}</h2>
+          <p className="mb-10 text-white/70 text-lg leading-relaxed max-w-sm">{t('messageSentBody') || 'Votre message apparaîtra bientôt sur l\'écran du DJ.'}</p>
+          <button
+            onClick={() => setSent(false)}
+            className="w-full max-w-xs bg-white text-black font-bold py-4 rounded-full transition-all active:scale-[0.98]"
+          >
+            {t('sendNewMessage') || 'Envoyer un autre message'}
+          </button>
+        </div>
+      ) : isPaymentStep && clientSecret ? (
+        // ÉCRAN DE PAIEMENT STRIPE (Plein écran)
+        <div className="relative z-50 flex-1 bg-zinc-950 flex flex-col animate-slide-up-sheet">
+          <div className="p-4 border-b border-white/10 flex items-center justify-between bg-zinc-900">
+            <button onClick={handlePaymentCancel} className="text-white/70 hover:text-white p-2">
+              ✕ Annuler
+            </button>
+            <span className="font-bold">Paiement sécurisé</span>
+            <div className="w-16"></div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="mb-6 bg-purple-500/10 border border-purple-500/20 rounded-2xl p-4 text-center">
+              <span className="block text-sm text-purple-300 mb-1">Total à payer</span>
+              <span className="text-3xl font-black text-white">${price.toFixed(2)}</span>
+            </div>
             
-            <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night' } }}>
+            <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'night', variables: { colorPrimary: '#a855f7', colorBackground: '#18181b' } } }}>
               <CheckoutForm 
                 clientSecret={clientSecret} 
                 onSuccess={handlePaymentSuccess} 
@@ -342,120 +398,253 @@ const bannedWords = [
               />
             </Elements>
           </div>
-        ) : (
-          <div className="card-glass p-7">
-            <h2 className="text-2xl font-bold mb-6">{t('sendMessageTitle')}</h2>
-            
-            {error && (
-              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-200 p-3 rounded-xl mb-4">
-                {error}
-              </div>
-            )}
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="displayName" className="label">{t('yourName')}</label>
-                <input
-                  id="displayName"
-                  type="text"
-                  value={displayName}
-                  onChange={handleNameChange}
-                  className="input-field"
-                  placeholder={t('yourNamePlaceholder')}
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="message" className="label">{t('yourMessage')}</label>
-                <textarea
-                  id="message"
-                  value={message}
-                  onChange={handleMessageChange}
-                  className="textarea-field"
-                  placeholder={t('yourMessagePlaceholder')}
-                  required
-                />
-              </div>
-
-            {/* --- NOUVELLE SECTION : EFFETS VISUELS --- */}
-            {EFFECTS.length > 0 && (
-              <div className="pt-4 border-t border-gray-100">
-                <label className="block text-sm font-bold text-gray-800 mb-3">
-                  1. Achetez une Animation Vidéo Géante ! (Optionnel)
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {EFFECTS.map((effect) => (
-                    <button
-                      key={effect.id}
-                      type="button"
-                      onClick={() => setSelectedEffect(selectedEffect === effect.id ? null : effect.id)}
-                      className={`px-3 py-2 rounded-lg border transition-all flex flex-col items-center justify-center text-center ${
-                        selectedEffect === effect.id
-                          ? 'bg-blue-50 border-blue-500 text-blue-700 font-medium scale-[1.02] shadow-sm'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <span className="text-base font-bold">{effect.name}</span>
-                      <span className={`text-xs mt-1 ${selectedEffect === effect.id ? 'text-blue-500 font-bold' : 'text-gray-400'}`}>+ ${effect.price}</span>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2 text-center italic">
-                  Cette vidéo recouvrira l'écran de la scène pendant l'affichage de votre message !
-                </p>
-              </div>
-            )}
-
-            {/* --- NOUVELLE SECTION : DUREE D'AFFICHAGE --- */}
-            <div className="pt-4 border-t border-gray-100">
-              <label className="flex justify-between text-sm font-bold text-gray-800 mb-3">
-                <span>3. Durée d'affichage à l'écran</span>
-                <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{selectedDuration} secondes</span>
-              </label>
-              
-              <div className="px-2">
-                <input 
-                  type="range" 
-                  min="5" 
-                  max="30" 
-                  step="5"
-                  value={selectedDuration}
-                  onChange={(e) => setSelectedDuration(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-2 font-medium">
-                  <span>5s (Inclus)</span>
-                  <span>15s (+$10)</span>
-                  <span>30s (+$25)</span>
-                </div>
-              </div>
-              <p className="text-xs text-gray-500 mt-3 text-center italic">
-                +1$ par seconde supplémentaire au-delà de 5s.
-              </p>
+        </div>
+      ) : (
+        // ÉCRAN PRINCIPAL TIKTOK-STYLE
+        <>
+          {/* HEADER */}
+          <div className="relative z-10 p-5 flex justify-between items-start pt-safe">
+            <div className="tiktok-glass rounded-full px-4 py-1.5 flex items-center gap-2 shadow-lg">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+              <span className="text-xs font-black tracking-widest uppercase text-white/90">{t('liveShow') || 'LIVE'}</span>
             </div>
-              
-              <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4">
-                <div className="flex justify-between items-center">
-                  <span>{t('price')}:</span>
-                  <span className="text-xl font-bold text-emerald-300">${price.toFixed(2)}</span>
-                </div>
-                <p className="text-sm text-gray-400 mt-1">
-                  {t('pricePerChar')} ${show.user.settings?.pricePerChar || 0.1}
-                </p>
-              </div>
-              
-              <button
-                type="submit"
-                disabled={loading || !message || !displayName || error !== ""}
-                className={`w-full btn-primary ${(loading || !message || !displayName || error !== "") ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {loading ? t('processing') : t('sendAndPay')}
-              </button>
-            </form>
           </div>
-        )}
-      </div>
+
+          {/* MAIN CONTENT AREA */}
+          <div className="relative z-10 flex-1 flex items-end p-5 pb-28">
+            {/* DJ INFO & SELECTION PREVIEW (Bottom Left) */}
+            <div className="flex-1 pr-16 mb-2">
+              <h1 className="text-3xl font-black drop-shadow-xl mb-1 flex items-center gap-2">
+                {show.user.name || 'DJ'}
+                <span className="text-blue-400 text-lg">✓</span>
+              </h1>
+              <p className="text-sm font-bold text-white/80 drop-shadow-md mb-4 uppercase tracking-wider">{show.title}</p>
+              
+              {/* Preview Bubble */}
+              {(message || selectedEmoji || selectedEffect) && (
+                <div className="tiktok-glass rounded-2xl p-4 text-sm mb-2 max-w-[85%] animate-fade-in border-l-4 border-l-purple-500">
+                  {displayName && <span className="font-bold text-purple-300 block mb-1">{displayName}</span>}
+                  {message && <p className="text-white/95 line-clamp-3 mb-2 leading-relaxed">{message}</p>}
+                  <div className="flex flex-wrap gap-2 text-xs font-bold mt-2">
+                    {selectedEmoji && <span className="bg-pink-500/30 text-pink-200 px-2.5 py-1 rounded-full shadow-inner">Emoji: {selectedEmoji}</span>}
+                    {selectedEffect && <span className="bg-blue-500/30 text-blue-200 px-2.5 py-1 rounded-full shadow-inner">🎬 Takeover</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* SIDEBAR ACTIONS (Bottom Right) */}
+          <div className="absolute right-4 bottom-[120px] z-20 flex flex-col gap-6 items-center pb-safe">
+            <div className="relative group">
+              <button onClick={() => openSheet('message')} className="flex flex-col items-center gap-1.5 transition-transform active:scale-90">
+                <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-2xl shadow-xl border-2 ${activeTab === 'message' && isSheetOpen ? 'bg-purple-600 border-purple-400' : 'tiktok-glass border-white/20'}`}>
+                  📝
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Message</span>
+              </button>
+              {message && <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-black">✓</div>}
+            </div>
+
+            <div className="relative">
+              <button onClick={() => openSheet('emoji')} className="flex flex-col items-center gap-1.5 transition-transform active:scale-90">
+                <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-2xl shadow-xl border-2 ${activeTab === 'emoji' && isSheetOpen ? 'bg-pink-600 border-pink-400' : 'tiktok-glass border-white/20'}`}>
+                  💖
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Emoji</span>
+              </button>
+              {selectedEmoji && <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-black">1</div>}
+            </div>
+
+            <div className="relative">
+              <button onClick={() => openSheet('takeover')} className="flex flex-col items-center gap-1.5 transition-transform active:scale-90">
+                <div className={`w-[50px] h-[50px] rounded-full flex items-center justify-center text-2xl shadow-xl border-2 ${activeTab === 'takeover' && isSheetOpen ? 'bg-blue-600 border-blue-400' : 'tiktok-glass border-white/20'}`}>
+                  🎬
+                </div>
+                <span className="text-[11px] font-bold text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Takeover</span>
+              </button>
+              {selectedEffect && <div className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold border-2 border-black">1</div>}
+            </div>
+          </div>
+
+          {/* BOTTOM PAY BUTTON (Sticky) */}
+          <div className="absolute bottom-0 left-0 w-full p-4 pt-12 bg-gradient-to-t from-black via-black/90 to-transparent z-20 pb-safe">
+            <button 
+              onClick={handleMainSubmit}
+              disabled={loading}
+              className="w-full bg-white text-black font-black py-4 rounded-full shadow-[0_0_30px_rgba(255,255,255,0.2)] flex justify-between items-center px-6 active:scale-[0.98] transition-all disabled:opacity-70"
+            >
+              <div className="flex items-center gap-3">
+                {loading ? (
+                  <span className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin"></span>
+                ) : (
+                  <span className="text-xl">🚀</span>
+                )}
+                <span className="text-lg">{t('sendAndPay') || 'Envoyer au DJ'}</span>
+              </div>
+              <div className="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-full">
+                <span>${price.toFixed(2)}</span>
+                <span className="text-black/50">→</span>
+              </div>
+            </button>
+          </div>
+
+          {/* BOTTOM SHEET OVERLAY */}
+          {isSheetOpen && (
+            <div className="absolute inset-0 z-40 flex flex-col justify-end pointer-events-auto">
+              {/* BACKDROP */}
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsSheetOpen(false)} />
+              
+              {/* SHEET CONTENT */}
+              <div className="relative bg-zinc-900 rounded-t-[32px] border-t border-white/10 flex flex-col max-h-[85vh] animate-slide-up-sheet shadow-[0_-10px_40px_rgba(0,0,0,0.5)] pb-safe">
+                <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-4 mb-2 cursor-grab" onClick={() => setIsSheetOpen(false)} />
+                
+                {/* TABS HEADER */}
+                <div className="flex px-4 py-3 gap-3 overflow-x-auto no-scrollbar border-b border-white/5">
+                  <button onClick={() => setActiveTab('message')} className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'message' ? 'bg-white text-black' : 'bg-white/10 text-white/70'}`}>
+                    📝 Message
+                  </button>
+                  <button onClick={() => setActiveTab('emoji')} className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'emoji' ? 'bg-white text-black' : 'bg-white/10 text-white/70'}`}>
+                    💖 3D Emoji
+                  </button>
+                  <button onClick={() => setActiveTab('takeover')} className={`whitespace-nowrap px-4 py-2 rounded-full text-sm font-bold transition-all ${activeTab === 'takeover' ? 'bg-white text-black' : 'bg-white/10 text-white/70'}`}>
+                    🎬 Takeover
+                  </button>
+                </div>
+
+                <div className="overflow-y-auto p-5 pb-24 space-y-6">
+                  {error && (
+                    <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-3 rounded-xl text-sm font-medium flex items-center gap-2">
+                      <span>⚠️</span> <p>{error}</p>
+                    </div>
+                  )}
+
+                  {/* GLOBAL INPUTS (Name is always needed) */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-white/50 mb-1.5 uppercase tracking-wider">{t('yourName') || 'Votre Nom'}</label>
+                      <input
+                        type="text"
+                        value={displayName}
+                        onChange={handleNameChange}
+                        className="w-full bg-black/50 border border-white/10 text-white px-4 py-3.5 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all placeholder-white/30 font-medium text-lg"
+                        placeholder={t('yourNamePlaceholder') || 'Ex: John Doe'}
+                      />
+                    </div>
+                  </div>
+
+                  {/* TAB: MESSAGE */}
+                  <div className={activeTab === 'message' ? 'block animate-fade-in' : 'hidden'}>
+                    <div>
+                      <label className="block text-xs font-bold text-white/50 mb-1.5 uppercase tracking-wider">{t('yourMessage') || 'Votre Message'}</label>
+                      <textarea
+                        value={message}
+                        onChange={handleMessageChange}
+                        className="w-full bg-black/50 border border-white/10 text-white px-4 py-3.5 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all placeholder-white/30 min-h-[120px] font-medium resize-none text-lg"
+                        placeholder={t('yourMessagePlaceholder') || 'Écrivez quelque chose de sympa...'}
+                      />
+                    </div>
+                  </div>
+
+                  {/* TAB: EMOJI */}
+                  <div className={activeTab === 'emoji' ? 'block animate-fade-in' : 'hidden'}>
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-black text-white">Réaction Géante 3D</h3>
+                      <p className="text-xs text-white/50">L'emoji apparaîtra en grand sur l'écran !</p>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      {EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setSelectedEmoji(selectedEmoji === emoji ? null : emoji)}
+                          className={`aspect-square rounded-2xl flex flex-col items-center justify-center text-4xl transition-all duration-300 ${
+                            selectedEmoji === emoji 
+                              ? 'bg-gradient-to-br from-pink-500 to-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] scale-110 border-2 border-white' 
+                              : 'bg-black/40 border border-white/10 hover:bg-black/60'
+                          }`}
+                        >
+                          {emoji}
+                          <span className={`text-[10px] font-black mt-1 ${selectedEmoji === emoji ? 'text-white' : 'text-white/40'}`}>+$2</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* TAB: TAKEOVER */}
+                  <div className={activeTab === 'takeover' ? 'block animate-fade-in' : 'hidden'}>
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-black text-white">Prenez le contrôle</h3>
+                      <p className="text-xs text-white/50">Remplacez la vidéo du DJ par une animation exclusive.</p>
+                    </div>
+                    
+                    {EFFECTS.length > 0 ? (
+                      <div className="space-y-3">
+                        {EFFECTS.map((effect) => (
+                          <button
+                            key={effect.id}
+                            type="button"
+                            onClick={() => setSelectedEffect(selectedEffect === effect.id ? null : effect.id)}
+                            className={`w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between text-left ${
+                              selectedEffect === effect.id
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 border-white shadow-[0_0_20px_rgba(79,70,229,0.4)] scale-[1.02]'
+                                : 'bg-black/40 border-white/10 hover:bg-black/60'
+                            }`}
+                          >
+                            <div>
+                              <span className="block text-lg font-black text-white">{effect.name}</span>
+                              <span className="text-xs text-white/60">Animation Plein Écran</span>
+                            </div>
+                            <div className="px-3 py-1.5 rounded-lg font-black text-sm bg-black/40 text-white border border-white/10">
+                              + ${effect.price}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-black/40 border border-white/10 rounded-2xl p-6 text-center">
+                        <span className="text-4xl block mb-2">🎬</span>
+                        <p className="text-sm font-bold text-white mb-1">Aucun Takeover disponible</p>
+                        <p className="text-xs text-white/50">Le DJ n'a pas encore configuré de vidéos Takeover pour cet événement.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DURÉE (COMMUNE) */}
+                  <div className="pt-6 border-t border-white/10">
+                    <label className="flex justify-between text-xs font-bold text-white/50 mb-4 uppercase tracking-wider">
+                      <span>Temps à l'écran</span>
+                      <span className="text-purple-400 bg-purple-400/10 px-2 py-0.5 rounded-md">{selectedDuration} sec</span>
+                    </label>
+                    <input 
+                      type="range" 
+                      min="5" 
+                      max="30" 
+                      step="5"
+                      value={selectedDuration}
+                      onChange={(e) => setSelectedDuration(Number(e.target.value))}
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                    />
+                    <div className="flex justify-between text-[10px] text-white/40 mt-2 font-bold">
+                      <span>5s</span>
+                      <span>15s (+$10)</span>
+                      <span>30s (+$25)</span>
+                    </div>
+                  </div>
+
+                  {/* BOUTON VALIDER DANS LE SHEET */}
+                  <button 
+                    onClick={() => setIsSheetOpen(false)}
+                    className="w-full bg-white/10 hover:bg-white/20 text-white font-bold py-4 rounded-xl transition-all border border-white/10 mt-4"
+                  >
+                    Valider la sélection (${price.toFixed(2)})
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

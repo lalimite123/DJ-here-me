@@ -737,14 +737,14 @@ export default function StartShowClient() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
 
           {/* MINI-VISUALISEUR AUDIO (S'affiche par-dessus les vidéos) */}
-          {currentTheme && !currentTheme.id.startsWith('static-') && (
+          {currentTheme && !currentTheme.id.startsWith('static-') && !spectatorTakeoverUrl && (
             <div className="absolute bottom-6 left-6 w-48 h-48 md:w-64 md:h-64 rounded-full overflow-hidden border-2 border-white/20 bg-black/40 backdrop-blur-sm pointer-events-none z-20 shadow-[0_0_30px_rgba(136,0,255,0.3)]">
               <BeatSceneWrapper analyser={analyserRef.current} isMini={true} />
             </div>
           )}
 
           {/* QR CODE */}
-          {showUrl && (
+          {showUrl && !spectatorTakeoverUrl && (
             <div className="absolute z-30 transition-all duration-1000 ease-out p-4 md:p-6 bg-black/40 backdrop-blur-md rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl flex flex-col items-center pointer-events-auto" style={qrPanelStyle}>
               <div className="bg-white p-3 md:p-4 rounded-xl shadow-inner transition-transform duration-700 hover:scale-105">
                 <QRCodeSVG value={showUrl} size={qrSize} level="H" includeMargin={false} />
@@ -771,10 +771,21 @@ export default function StartShowClient() {
             </div>
           )}
 
-          {/* EMOJI FLOTTANT (Si applicable) */}
+          {/* EMOJI GEANT 3D (Si applicable) */}
           {activeMessage?.emoji3D && (
-            <div className="absolute top-1/4 left-1/4 text-9xl animate-bounce">
-              {activeMessage.emoji3D}
+            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
+              {/* Particules lumineuses */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_60%)] opacity-0 animate-[giantEmojiRise_4s_cubic-bezier(0.2,0.8,0.2,1)_forwards]" />
+              
+              <div 
+                className="relative text-[30rem] md:text-[45rem]"
+                style={{
+                  animation: 'giantEmojiRise 4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+                  filter: 'drop-shadow(0 40px 100px rgba(0,0,0,0.8)) drop-shadow(0 0 50px rgba(255,255,255,0.4))'
+                }}
+              >
+                {activeMessage.emoji3D}
+              </div>
             </div>
           )}
 
