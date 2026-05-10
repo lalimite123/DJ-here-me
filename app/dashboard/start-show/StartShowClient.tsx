@@ -777,8 +777,26 @@ export default function StartShowClient() {
               {/* Particules lumineuses */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_60%)] opacity-0 animate-[giantEmojiRise_4s_cubic-bezier(0.2,0.8,0.2,1)_forwards]" />
               
+              {/* Multi-emojis en arrière-plan */}
+              {[...Array(12)].map((_, i) => (
+                <div 
+                  key={`bg-emoji-${i}`}
+                  className="absolute text-[8rem] md:text-[12rem] opacity-60"
+                  style={{
+                    left: `${Math.random() * 80 + 10}%`,
+                    animation: `giantEmojiRise ${3 + Math.random() * 2}s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`,
+                    animationDelay: `${Math.random() * 0.5}s`,
+                    filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.5))',
+                    transform: `scale(${0.5 + Math.random() * 0.5}) rotate(${(Math.random() - 0.5) * 40}deg)`
+                  }}
+                >
+                  {activeMessage.emoji3D}
+                </div>
+              ))}
+
+              {/* Emoji principal (plus grand) */}
               <div 
-                className="relative text-[30rem] md:text-[45rem]"
+                className="relative text-[25rem] md:text-[38rem] z-10"
                 style={{
                   animation: 'giantEmojiRise 4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
                   filter: 'drop-shadow(0 40px 100px rgba(0,0,0,0.8)) drop-shadow(0 0 50px rgba(255,255,255,0.4))'

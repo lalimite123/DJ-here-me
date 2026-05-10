@@ -127,7 +127,7 @@ export default function SendMessageClient({ show }: { show: ShowWithUser }) {
 
   const EFFECTS = show.theme?.takeovers || []
 
-  const EMOJIS = ['❤️', '🔥', '🚀', '🍾', '😎', '💀', '💸']
+  const EMOJIS = ['❤️', '🔥', '🚀', '🍾', '😎', '💀', '💸', '🎈']
   
   // Nouveaux états pour Stripe
   const [clientSecret, setClientSecret] = useState<string | null>(null)
