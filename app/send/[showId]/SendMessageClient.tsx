@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Show, User, DJSettings } from '@prisma/client'
 import { useLanguage } from '../../i18n/LanguageProvider'
 import { loadStripe } from '@stripe/stripe-js'
@@ -111,6 +111,43 @@ const CheckoutForm = ({ clientSecret, onSuccess, onCancel, amount, messageId }: 
   );
 }
 
+const LottieCanvasPreview = ({ url, className }: { url: string, className?: string }) => {
+  const canvasRef = (useRef<HTMLCanvasElement | null>(null))
+  const playerRef = useRef<any>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const run = async () => {
+      const mod = await import('@lottiefiles/dotlottie-web')
+      const DotLottie = (mod as any).DotLottie
+      if (cancelled || !canvasRef.current || !DotLottie) return
+
+      if (playerRef.current?.destroy) playerRef.current.destroy()
+      playerRef.current = new DotLottie({
+        canvas: canvasRef.current,
+        src: url,
+        loop: true,
+        autoplay: true,
+        renderConfig: {
+          autoResize: true,
+          devicePixelRatio: 1
+        }
+      })
+    }
+
+    run().catch(() => {})
+
+    return () => {
+      cancelled = true
+      if (playerRef.current?.destroy) playerRef.current.destroy()
+      playerRef.current = null
+    }
+  }, [url])
+
+  return <canvas ref={canvasRef} className={className} />
+}
+
 export default function SendMessageClient({ show }: { show: ShowWithUser }) {
   const [displayName, setDisplayName] = useState('')
   const [message, setMessage] = useState('')
@@ -129,13 +166,13 @@ export default function SendMessageClient({ show }: { show: ShowWithUser }) {
 
   // Utilisation d'emojis 3D haute qualité (Fluent Emojis de Microsoft via CDN public)
   const HIGH_QUALITY_EMOJIS = [
-    { id: 'heart', icon: '❤️', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Red%20heart/3D/red_heart_3d.png' },
-    { id: 'fire', icon: '🔥', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Fire/3D/fire_3d.png' },
-    { id: 'rocket', icon: '🚀', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Rocket/3D/rocket_3d.png' },
-    { id: 'champagne', icon: '🍾', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bottle%20with%20popping%20cork/3D/bottle_with_popping_cork_3d.png' },
-    { id: 'cool', icon: '😎', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Smiling%20face%20with%20sunglasses/3D/smiling_face_with_sunglasses_3d.png' },
-    { id: 'skull', icon: '💀', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Skull/3D/skull_3d.png' },
-    { id: 'money', icon: '💸', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Money%20with%20wings/3D/money_with_wings_3d.png' },
+    // { id: 'heart', icon: '❤️', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Red%20heart/3D/red_heart_3d.png' },
+    // { id: 'fire', icon: '🔥', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Fire/3D/fire_3d.png' },
+    // { id: 'rocket', icon: '🚀', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Rocket/3D/rocket_3d.png' },
+    // { id: 'champagne', icon: '🍾', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bottle%20with%20popping%20cork/3D/bottle_with_popping_cork_3d.png' },
+    // { id: 'cool', icon: '😎', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Smiling%20face%20with%20sunglasses/3D/smiling_face_with_sunglasses_3d.png' },
+    // { id: 'skull', icon: '💀', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Skull/3D/skull_3d.png' },
+    // { id: 'money', icon: '💸', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Money%20with%20wings/3D/money_with_wings_3d.png' },
     { id: 'balloon', icon: '🎈', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Balloon/3D/balloon_3d.png' },
   ]
 
@@ -347,6 +384,14 @@ const bannedWords = [
   const openSheet = (tab: 'message' | 'emoji' | 'takeover') => {
     setActiveTab(tab)
     setIsSheetOpen(true)
+  }
+
+  const isLottieUrl = (url: string) => /\.(lottie|json)(\?|#|$)/i.test(url)
+  const isYouTubeUrl = (url: string) => url.includes('youtube.com') || url.includes('youtu.be')
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
   }
 
   return (
@@ -580,6 +625,28 @@ const bannedWords = [
                       <p className="text-xs text-white/50">L'emoji apparaîtra en grand sur l'écran !</p>
                     </div>
 
+                    {selectedEmoji && (
+                      <div className="mb-5 bg-black/40 border border-white/10 rounded-2xl overflow-hidden">
+                        <div className="px-4 py-3 flex items-center justify-between border-b border-white/10">
+                          <span className="text-sm font-black text-white">Prévisualisation</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedEmoji(null)}
+                            className="text-xs font-bold text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full border border-white/10 transition"
+                          >
+                            Retirer
+                          </button>
+                        </div>
+                        <div className="aspect-video bg-black/60 flex items-center justify-center">
+                          {isLottieUrl(selectedEmoji) ? (
+                            <LottieCanvasPreview url={selectedEmoji} className="w-full h-full" />
+                          ) : (
+                            <img src={selectedEmoji} alt="preview" className="w-full h-full object-contain" />
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-3 gap-3 mb-6">
                       {LOTTIE_PRESETS.map((item) => (
                         <button
@@ -662,6 +729,53 @@ const bannedWords = [
                       <h3 className="text-lg font-black text-white">Prenez le contrôle</h3>
                       <p className="text-xs text-white/50">Remplacez la vidéo du DJ par une animation exclusive.</p>
                     </div>
+
+                    {selectedEffect && (() => {
+                      const tk = EFFECTS.find(e => e.id === selectedEffect)
+                      if (!tk) return null
+                      const videoUrl = tk.videoUrl
+                      const ytId = isYouTubeUrl(videoUrl) ? getYouTubeId(videoUrl) : null
+
+                      return (
+                        <div className="mb-5 bg-black/40 border border-white/10 rounded-2xl overflow-hidden">
+                          <div className="px-4 py-3 flex items-center justify-between border-b border-white/10">
+                            <div className="min-w-0">
+                              <span className="block text-sm font-black text-white truncate">{tk.name}</span>
+                              <span className="block text-xs text-white/50">Prévisualisation takeover</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedEffect(null)}
+                              className="text-xs font-bold text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-3 py-1 rounded-full border border-white/10 transition"
+                            >
+                              Retirer
+                            </button>
+                          </div>
+                          <div className="aspect-video bg-black/60 flex items-center justify-center">
+                            {isLottieUrl(videoUrl) ? (
+                              <LottieCanvasPreview url={videoUrl} className="w-full h-full" />
+                            ) : ytId ? (
+                              <iframe
+                                className="w-full h-full"
+                                src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1&controls=0&playsinline=1&loop=1&playlist=${ytId}&modestbranding=1&rel=0&iv_load_policy=3`}
+                                allow="autoplay; encrypted-media"
+                                allowFullScreen={false}
+                                title="Takeover preview"
+                              />
+                            ) : (
+                              <video
+                                src={videoUrl}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                className="w-full h-full object-contain"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
                     
                     {EFFECTS.length > 0 ? (
                       <div className="space-y-3">
