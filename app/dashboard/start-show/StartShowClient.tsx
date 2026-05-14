@@ -771,38 +771,61 @@ export default function StartShowClient() {
             </div>
           )}
 
-          {/* EMOJI GEANT 3D (Si applicable) */}
+          {/* ANIMATION FLUIDE MULTI-EMOJIS (Performances optimisées avec Emojis 3D) */}
           {activeMessage?.emoji3D && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
-              {/* Particules lumineuses */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_60%)] opacity-0 animate-[giantEmojiRise_4s_cubic-bezier(0.2,0.8,0.2,1)_forwards]" />
-              
-              {/* Multi-emojis en arrière-plan */}
-              {[...Array(12)].map((_, i) => (
-                <div 
-                  key={`bg-emoji-${i}`}
-                  className="absolute text-[8rem] md:text-[12rem] opacity-60"
-                  style={{
-                    left: `${Math.random() * 80 + 10}%`,
-                    animation: `giantEmojiRise ${3 + Math.random() * 2}s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`,
-                    animationDelay: `${Math.random() * 0.5}s`,
-                    filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.5))',
-                    transform: `scale(${0.5 + Math.random() * 0.5}) rotate(${(Math.random() - 0.5) * 40}deg)`
-                  }}
-                >
-                  {activeMessage.emoji3D}
-                </div>
-              ))}
-
-              {/* Emoji principal (plus grand) */}
+            <div className="absolute inset-0 z-50 pointer-events-none overflow-hidden" style={{ perspective: '1000px' }}>
+              {/* Particules lumineuses douces */}
               <div 
-                className="relative text-[25rem] md:text-[38rem] z-10"
-                style={{
-                  animation: 'giantEmojiRise 4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
-                  filter: 'drop-shadow(0 40px 100px rgba(0,0,0,0.8)) drop-shadow(0 0 50px rgba(255,255,255,0.4))'
-                }}
-              >
-                {activeMessage.emoji3D}
+                className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.15)_0%,transparent_60%)] opacity-0" 
+                style={{ animation: 'smoothEmojiRise 6s ease-out forwards' }} 
+              />
+              
+              {/* Conteneur principal pour forcer l'accélération matérielle */}
+              <div className="absolute inset-0" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
+                {/* 15 Emojis générés de manière fluide */}
+                {[...Array(15)].map((_, i) => {
+                  const isMain = i === 0;
+                  // Distribution plus harmonieuse
+                  const leftPos = isMain ? 50 : 10 + Math.random() * 80;
+                  const delay = isMain ? 0 : Math.random() * 2;
+                  const duration = isMain ? 6 : 5 + Math.random() * 3;
+                  const size = isMain ? 'clamp(12rem, 25vw, 24rem)' : `clamp(4rem, ${8 + Math.random() * 6}vw, 12rem)`;
+                  const animName = i % 2 === 0 ? 'smoothEmojiRise' : 'smoothEmojiRiseAlt';
+                  
+                  // Déterminer si emoji3D est une URL (nouvelle version) ou un texte (ancienne version/fallback)
+                  const isUrl = activeMessage.emoji3D?.startsWith('http');
+                  
+                  return (
+                    <div 
+                      key={`smooth-emoji-${i}`}
+                      className="absolute bottom-0 flex items-center justify-center"
+                      style={{
+                        left: `${leftPos}%`,
+                        marginLeft: isMain ? 'calc(-1 * clamp(6rem, 12.5vw, 12rem))' : '0', // Centrer le principal
+                        width: size,
+                        height: size,
+                        opacity: 0,
+                        animation: `${animName} ${duration}s ease-in-out forwards`,
+                        animationDelay: `${delay}s`,
+                        filter: isMain 
+                          ? 'drop-shadow(0 20px 40px rgba(0,0,0,0.4)) drop-shadow(0 0 20px rgba(255,255,255,0.2))' 
+                          : 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))',
+                        zIndex: isMain ? 20 : 10,
+                        willChange: 'transform, opacity', // Optimisation GPU
+                      }}
+                    >
+                      {isUrl ? (
+                        <img 
+                          src={activeMessage.emoji3D!} 
+                          alt="emoji" 
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <span style={{ fontSize: size }}>{activeMessage.emoji3D}</span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

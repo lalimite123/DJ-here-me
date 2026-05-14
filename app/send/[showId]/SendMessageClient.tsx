@@ -127,14 +127,24 @@ export default function SendMessageClient({ show }: { show: ShowWithUser }) {
 
   const EFFECTS = show.theme?.takeovers || []
 
-  const EMOJIS = ['❤️', '🔥', '🚀', '🍾', '😎', '💀', '💸', '🎈']
+  // Utilisation d'emojis 3D haute qualité (Fluent Emojis de Microsoft via CDN public)
+  const HIGH_QUALITY_EMOJIS = [
+    { id: 'heart', icon: '❤️', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Red%20heart/3D/red_heart_3d.png' },
+    { id: 'fire', icon: '🔥', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Fire/3D/fire_3d.png' },
+    { id: 'rocket', icon: '🚀', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Rocket/3D/rocket_3d.png' },
+    { id: 'champagne', icon: '🍾', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Bottle%20with%20popping%20cork/3D/bottle_with_popping_cork_3d.png' },
+    { id: 'cool', icon: '😎', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Smiling%20face%20with%20sunglasses/3D/smiling_face_with_sunglasses_3d.png' },
+    { id: 'skull', icon: '💀', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Skull/3D/skull_3d.png' },
+    { id: 'money', icon: '💸', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Money%20with%20wings/3D/money_with_wings_3d.png' },
+    { id: 'balloon', icon: '🎈', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Balloon/3D/balloon_3d.png' },
+  ]
   
   // Nouveaux états pour Stripe
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [isPaymentStep, setIsPaymentStep] = useState(false)
   const [currentMessageId, setCurrentMessageId] = useState<string | null>(null)
 
-  // Nouveaux états pour l'interface TikTok
+  // Nouveaux états pour l'interface TikTok 
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   const { t } = useLanguage()
@@ -426,7 +436,11 @@ const bannedWords = [
                   {displayName && <span className="font-bold text-purple-300 block mb-1">{displayName}</span>}
                   {message && <p className="text-white/95 line-clamp-3 mb-2 leading-relaxed">{message}</p>}
                   <div className="flex flex-wrap gap-2 text-xs font-bold mt-2">
-                    {selectedEmoji && <span className="bg-pink-500/30 text-pink-200 px-2.5 py-1 rounded-full shadow-inner">Emoji: {selectedEmoji}</span>}
+                    {selectedEmoji && (
+                      <span className="bg-pink-500/30 text-pink-200 px-2.5 py-1 rounded-full shadow-inner flex items-center gap-1">
+                        Emoji: <img src={selectedEmoji} alt="emoji" className="w-4 h-4 object-contain" />
+                      </span>
+                    )}
                     {selectedEffect && <span className="bg-blue-500/30 text-blue-200 px-2.5 py-1 rounded-full shadow-inner">🎬 Takeover</span>}
                   </div>
                 </div>
@@ -553,19 +567,19 @@ const bannedWords = [
                       <p className="text-xs text-white/50">L'emoji apparaîtra en grand sur l'écran !</p>
                     </div>
                     <div className="grid grid-cols-4 gap-3">
-                      {EMOJIS.map((emoji) => (
+                      {HIGH_QUALITY_EMOJIS.map((emojiObj) => (
                         <button
-                          key={emoji}
+                          key={emojiObj.id}
                           type="button"
-                          onClick={() => setSelectedEmoji(selectedEmoji === emoji ? null : emoji)}
-                          className={`aspect-square rounded-2xl flex flex-col items-center justify-center text-4xl transition-all duration-300 ${
-                            selectedEmoji === emoji 
+                          onClick={() => setSelectedEmoji(selectedEmoji === emojiObj.url ? null : emojiObj.url)}
+                          className={`aspect-square rounded-2xl flex flex-col items-center justify-center p-2 transition-all duration-300 ${
+                            selectedEmoji === emojiObj.url 
                               ? 'bg-gradient-to-br from-pink-500 to-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] scale-110 border-2 border-white' 
                               : 'bg-black/40 border border-white/10 hover:bg-black/60'
                           }`}
                         >
-                          {emoji}
-                          <span className={`text-[10px] font-black mt-1 ${selectedEmoji === emoji ? 'text-white' : 'text-white/40'}`}>+$2</span>
+                          <img src={emojiObj.url} alt={emojiObj.id} className="w-10 h-10 object-contain drop-shadow-lg" />
+                          <span className={`text-[10px] font-black mt-1 ${selectedEmoji === emojiObj.url ? 'text-white' : 'text-white/40'}`}>+$2</span>
                         </button>
                       ))}
                     </div>
