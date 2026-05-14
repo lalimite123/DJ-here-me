@@ -138,6 +138,12 @@ export default function SendMessageClient({ show }: { show: ShowWithUser }) {
     { id: 'money', icon: '💸', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Money%20with%20wings/3D/money_with_wings_3d.png' },
     { id: 'balloon', icon: '🎈', url: 'https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Balloon/3D/balloon_3d.png' },
   ]
+
+  const LOTTIE_PRESETS = [
+    { id: 'lottie-balloon', label: 'Ballon', url: 'https://lottie.host/585c3d0c-d11e-4bc8-a051-985faf1bd41e/gbRATQ7lrp.lottie' },
+    { id: 'lottie-heart', label: 'Cœur', url: 'https://lottie.host/cfc85c2f-851c-4cce-ab50-7b13fa022a18/sYhVa0uwoU.lottie' },
+    { id: 'lottie-money', label: 'Money', url: 'https://lottie.host/8e004e1a-e3b0-4f55-b422-27345cd7581e/QHGBZDjsWz.lottie' },
+  ]
   
   // Nouveaux états pour Stripe
   const [clientSecret, setClientSecret] = useState<string | null>(null)
@@ -146,6 +152,7 @@ export default function SendMessageClient({ show }: { show: ShowWithUser }) {
 
   // Nouveaux états pour l'interface TikTok 
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [customLottieUrl, setCustomLottieUrl] = useState('')
 
   const { t } = useLanguage()
 
@@ -437,9 +444,15 @@ const bannedWords = [
                   {message && <p className="text-white/95 line-clamp-3 mb-2 leading-relaxed">{message}</p>}
                   <div className="flex flex-wrap gap-2 text-xs font-bold mt-2">
                     {selectedEmoji && (
-                      <span className="bg-pink-500/30 text-pink-200 px-2.5 py-1 rounded-full shadow-inner flex items-center gap-1">
-                        Emoji: <img src={selectedEmoji} alt="emoji" className="w-4 h-4 object-contain" />
-                      </span>
+                      /\.(lottie|json)(\?|#|$)/i.test(selectedEmoji) ? (
+                        <span className="bg-pink-500/30 text-pink-200 px-2.5 py-1 rounded-full shadow-inner flex items-center gap-1">
+                          Animation: <span className="bg-black/20 px-2 py-0.5 rounded-full text-[10px] font-black">Lottie</span>
+                        </span>
+                      ) : (
+                        <span className="bg-pink-500/30 text-pink-200 px-2.5 py-1 rounded-full shadow-inner flex items-center gap-1">
+                          Emoji: <img src={selectedEmoji} alt="emoji" className="w-4 h-4 object-contain" />
+                        </span>
+                      )
                     )}
                     {selectedEffect && <span className="bg-blue-500/30 text-blue-200 px-2.5 py-1 rounded-full shadow-inner">🎬 Takeover</span>}
                   </div>
@@ -566,6 +579,31 @@ const bannedWords = [
                       <h3 className="text-lg font-black text-white">Réaction Géante 3D</h3>
                       <p className="text-xs text-white/50">L'emoji apparaîtra en grand sur l'écran !</p>
                     </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                      {LOTTIE_PRESETS.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setSelectedEmoji(selectedEmoji === item.url ? null : item.url)}
+                          className={`rounded-2xl p-4 text-left border transition-all ${
+                            selectedEmoji === item.url
+                              ? 'bg-gradient-to-br from-pink-500 to-rose-500 border-white/30 shadow-[0_0_24px_rgba(244,63,94,0.35)]'
+                              : 'bg-black/40 border-white/10 hover:bg-black/60'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-black text-white">{item.label}</span>
+                            <span className="text-[10px] font-black bg-black/25 text-white/90 px-2 py-0.5 rounded-full">.lottie</span>
+                          </div>
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-[11px] text-white/60">Animation premium</span>
+                            <span className="text-[11px] font-black text-white/80">+$2</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+
                     <div className="grid grid-cols-4 gap-3">
                       {HIGH_QUALITY_EMOJIS.map((emojiObj) => (
                         <button
@@ -582,6 +620,39 @@ const bannedWords = [
                           <span className={`text-[10px] font-black mt-1 ${selectedEmoji === emojiObj.url ? 'text-white' : 'text-white/40'}`}>+$2</span>
                         </button>
                       ))}
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-white/10">
+                      <label className="block text-xs font-bold text-white/50 mb-2 uppercase tracking-wider">
+                        Animation Lottie (.lottie ou .json)
+                      </label>
+                      <input
+                        type="url"
+                        value={customLottieUrl}
+                        onChange={(e) => setCustomLottieUrl(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 text-white px-4 py-3 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all placeholder-white/30 font-medium"
+                        placeholder="https://.../animation.json"
+                      />
+                      <div className="flex gap-3 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEmoji(customLottieUrl.trim() ? customLottieUrl.trim() : null)}
+                          disabled={!customLottieUrl.trim()}
+                          className="flex-1 bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all"
+                        >
+                          Utiliser
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomLottieUrl('')
+                            if (selectedEmoji && /\.(lottie|json)(\?|#|$)/i.test(selectedEmoji)) setSelectedEmoji(null)
+                          }}
+                          className="px-4 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl transition-all border border-white/10"
+                        >
+                          Reset
+                        </button>
+                      </div>
                     </div>
                   </div>
 

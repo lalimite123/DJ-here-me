@@ -322,7 +322,7 @@ export default function ThemeManagerClient() {
                     onChange={() => setTakeoverSourceType('youtube')}
                     className="w-4 h-4 text-green-600 bg-gray-800 border-gray-600 focus:ring-green-600 focus:ring-2"
                   />
-                  {t('adminThemesSourceYoutube')}
+                  {t('adminThemesSourceYoutube')} / Lottie
                 </label>
               </div>
 
@@ -340,11 +340,11 @@ export default function ThemeManagerClient() {
                 </div>
               ) : (
                 <div key="youtube-tk">
-                  <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesYoutubeLabel')}</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-1">{t('adminThemesYoutubeLabel')} / Lottie</label>
                   <input 
                     type="url" 
                     required
-                    placeholder={t('adminThemesYoutubePlaceholder')}
+                    placeholder="https://www.youtube.com/watch?v=...   ou   https://.../animation.lottie"
                     value={takeoverYoutubeUrl}
                     onChange={e => setTakeoverYoutubeUrl(e.target.value)}
                     className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white"

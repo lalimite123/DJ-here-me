@@ -47,6 +47,43 @@ const STATIC_THEMES: Theme[] = [
   { id: 'static-disco2', name: 'Disco Grid', description: 'Canvas Reactif', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
 ]
 
+function LottieView({ url, className }: { url: string, className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const animationRef = useRef<any>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const run = async () => {
+      const mod = await import('@lottiefiles/dotlottie-web')
+      const DotLottie = (mod as any).DotLottie
+      if (cancelled || !canvasRef.current || !DotLottie) return
+
+      if (animationRef.current?.destroy) animationRef.current.destroy()
+      animationRef.current = new DotLottie({
+        canvas: canvasRef.current,
+        src: url,
+        loop: true,
+        autoplay: true,
+        renderConfig: {
+          autoResize: true,
+          devicePixelRatio: 1
+        }
+      })
+    }
+
+    run().catch(() => {})
+
+    return () => {
+      cancelled = true
+      if (animationRef.current?.destroy) animationRef.current.destroy()
+      animationRef.current = null
+    }
+  }, [url])
+
+  return <canvas ref={canvasRef} className={className} />
+}
+
 export default function StartShowClient() {
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -387,6 +424,7 @@ export default function StartShowClient() {
   const tkVideoUrl = spectatorTakeoverUrl || ''
   const isTkYT = tkVideoUrl ? isYouTubeUrl(tkVideoUrl) : false
   const tkYtId = isTkYT ? getYouTubeId(tkVideoUrl) : null
+  const isTkLottie = tkVideoUrl ? (/\.(lottie|json)(\?|#|$)/i.test(tkVideoUrl)) : false
 
   // Ref pour injecter l'API YouTube dynamiquement
   const ytApiInjected = useRef(false)
@@ -602,7 +640,12 @@ export default function StartShowClient() {
           {/* LECTEUR DU TAKEOVER (Rendu par-dessus uniquement quand actif) */}
           {spectatorTakeoverUrl && (
             <>
-              {isTkYT && tkYtId ? (
+              {isTkLottie ? (
+                <div className="absolute inset-0 z-10 pointer-events-none select-none">
+                  <div className="absolute inset-0 bg-black/70" />
+                  <LottieView url={tkVideoUrl} className="absolute inset-0 w-full h-full" />
+                </div>
+              ) : isTkYT && tkYtId ? (
                 <div
                   className={`absolute inset-0 w-[120vw] h-[120vh] -left-[10vw] -top-[10vh] object-cover z-10 pointer-events-none select-none transition-opacity duration-500 ${!tkYtPlaying ? 'opacity-0' : 'opacity-100'}`}
                   style={videoAudioStyle}
@@ -756,7 +799,7 @@ export default function StartShowClient() {
           )}
 
           {/* MESSAGE */}
-          {activeMessage && (
+          {activeMessage && activeMessage.content && !spectatorTakeoverUrl && (
             <div className="absolute z-40 flex flex-col items-center justify-center transition-all duration-500 ease-out" style={messageStageStyle}>
               <div className="animate-message-slide-up text-center w-full">
                 <div className="inline-flex items-center gap-3 bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-xl mb-4 md:mb-6">
@@ -773,60 +816,47 @@ export default function StartShowClient() {
 
           {/* ANIMATION FLUIDE MULTI-EMOJIS (Performances optimisées avec Emojis 3D) */}
           {activeMessage?.emoji3D && (
-            <div className="absolute inset-0 z-50 pointer-events-none overflow-hidden" style={{ perspective: '1000px' }}>
-              {/* Particules lumineuses douces */}
-              <div 
-                className="absolute inset-0 bg-[radial-gradient(circle_at_bottom,rgba(255,255,255,0.15)_0%,transparent_60%)] opacity-0" 
-                style={{ animation: 'smoothEmojiRise 6s ease-out forwards' }} 
+            <div className="absolute inset-0 z-50 pointer-events-none overflow-hidden">
+              <div
+                className="absolute inset-0 opacity-0"
+                style={{
+                  background: 'radial-gradient(ellipse at bottom, rgba(236,72,153,0.16) 0%, rgba(0,0,0,0.25) 45%, rgba(0,0,0,0.55) 100%)',
+                  animation: 'emojiBurstLabel 5.8s ease-in-out forwards'
+                }}
               />
-              
-              {/* Conteneur principal pour forcer l'accélération matérielle */}
-              <div className="absolute inset-0" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
-                {/* 15 Emojis générés de manière fluide */}
-                {[...Array(15)].map((_, i) => {
-                  const isMain = i === 0;
-                  // Distribution plus harmonieuse
-                  const leftPos = isMain ? 50 : 10 + Math.random() * 80;
-                  const delay = isMain ? 0 : Math.random() * 2;
-                  const duration = isMain ? 6 : 5 + Math.random() * 3;
-                  const size = isMain ? 'clamp(12rem, 25vw, 24rem)' : `clamp(4rem, ${8 + Math.random() * 6}vw, 12rem)`;
-                  const animName = i % 2 === 0 ? 'smoothEmojiRise' : 'smoothEmojiRiseAlt';
-                  
-                  // Déterminer si emoji3D est une URL (nouvelle version) ou un texte (ancienne version/fallback)
-                  const isUrl = activeMessage.emoji3D?.startsWith('http');
-                  
-                  return (
-                    <div 
-                      key={`smooth-emoji-${i}`}
-                      className="absolute bottom-0 flex items-center justify-center"
-                      style={{
-                        left: `${leftPos}%`,
-                        marginLeft: isMain ? 'calc(-1 * clamp(6rem, 12.5vw, 12rem))' : '0', // Centrer le principal
-                        width: size,
-                        height: size,
-                        opacity: 0,
-                        animation: `${animName} ${duration}s ease-in-out forwards`,
-                        animationDelay: `${delay}s`,
-                        filter: isMain 
-                          ? 'drop-shadow(0 20px 40px rgba(0,0,0,0.4)) drop-shadow(0 0 20px rgba(255,255,255,0.2))' 
-                          : 'drop-shadow(0 10px 20px rgba(0,0,0,0.3))',
-                        zIndex: isMain ? 20 : 10,
-                        willChange: 'transform, opacity', // Optimisation GPU
-                      }}
-                    >
-                      {isUrl ? (
-                        <img 
-                          src={activeMessage.emoji3D!} 
-                          alt="emoji" 
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <span style={{ fontSize: size }}>{activeMessage.emoji3D}</span>
-                      )}
-                    </div>
-                  );
-                })}
+
+              <div
+                className="absolute top-[14vh] left-1/2 -translate-x-1/2 z-[60] text-center opacity-0"
+                style={{ animation: 'emojiBurstLabel 5.8s ease-in-out forwards' }}
+              >
+                <div className="inline-flex items-center gap-3 bg-black/55 backdrop-blur-xl px-8 py-3 rounded-full border border-white/15 shadow-[0_0_50px_rgba(0,0,0,0.75)]">
+                  <span className="text-pink-200 font-black tracking-widest uppercase text-xl md:text-3xl">
+                    {activeMessage.displayName}
+                  </span>
+                </div>
               </div>
+
+              {(/\.(lottie|json)(\?|#|$)/i.test(activeMessage.emoji3D)) ? (
+                <div className="absolute inset-0 flex items-end justify-center pb-[8vh]" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
+                  <LottieView url={activeMessage.emoji3D} className="w-[min(92vw,720px)] h-[min(92vw,720px)]" />
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex items-end justify-center pb-[10vh]" style={{ transform: 'translateZ(0)', willChange: 'transform' }}>
+                  <div
+                    className="w-[min(70vw,520px)] h-[min(70vw,520px)] opacity-0"
+                    style={{
+                      animation: 'smoothEmojiRise 6s ease-out forwards',
+                      filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.6)) drop-shadow(0 0 30px rgba(236,72,153,0.25))'
+                    }}
+                  >
+                    {activeMessage.emoji3D.startsWith('http') ? (
+                      <img src={activeMessage.emoji3D} alt="emoji" className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="text-[10rem]">{activeMessage.emoji3D}</span>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
