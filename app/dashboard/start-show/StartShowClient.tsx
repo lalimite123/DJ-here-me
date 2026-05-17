@@ -41,10 +41,10 @@ type ThemeVideo = {
 }
 
 const STATIC_THEMES: Theme[] = [
-  { id: 'static-orb', name: '3D Orb (Audio React)', description: 'Génératif 3D', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
-  { id: 'static-beat', name: 'Beat Scene (Minimal)', description: 'SVG Reactif', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
-  { id: 'static-beat2', name: 'Beat 2 (Butterfly)', description: 'SVG Symétrique', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
-  { id: 'static-disco2', name: 'Disco Grid', description: 'Canvas Reactif', thumbnailUrl: null, backgroundVideoUrl: '', takeovers: [] },
+  { id: 'static-orb', name: '3D Orb (Audio React)', description: 'Génératif 3D', thumbnailUrl: '/static_miniature/ORB.png', backgroundVideoUrl: '', takeovers: [] },
+  { id: 'static-beat', name: 'Beat Scene (Minimal)', description: 'SVG Reactif', thumbnailUrl: '/static_miniature/Beat mininal.png', backgroundVideoUrl: '', takeovers: [] },
+  { id: 'static-beat2', name: 'Beat 2 (Butterfly)', description: 'SVG Symétrique', thumbnailUrl: '/static_miniature/Beat 2 Butterfly.png', backgroundVideoUrl: '', takeovers: [] },
+  { id: 'static-disco2', name: 'Disco Grid', description: 'Canvas Reactif', thumbnailUrl: '/static_miniature/Disco grid.png', backgroundVideoUrl: '', takeovers: [] },
 ]
 
 function LottieView({ url, className }: { url: string, className?: string }) {
