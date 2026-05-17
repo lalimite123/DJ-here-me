@@ -524,6 +524,34 @@
   animation: textPulse 0.1s infinite alternate;
 }
 
+@keyframes marquee-rtl {
+  0% {
+    transform: translateX(100vw);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee-ltr {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100vw);
+  }
+}
+
+.animate-marquee-rtl {
+  animation: marquee-rtl 20s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-ltr {
+  animation: marquee-ltr 20s linear infinite;
+  will-change: transform;
+}
+
 @keyframes messageSlide {
   0% {
     opacity: 0;

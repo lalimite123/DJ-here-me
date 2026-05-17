@@ -385,17 +385,6 @@ export default function StartShowClient() {
   )
 
   const qrSize = Math.max(182, Math.floor(Math.min(windowSize.height * 0.295, windowSize.width * 0.32, 340)))
-  const isDesktop = windowSize.width >= 1024
-  const qrReservePx = isDesktop && showActive ? qrSize + 120 : 0
-  const messageScale = 1.0
-
-  const messageNameStyle: CSSProperties = { fontSize: `${Math.max(15, Math.round(30 * messageScale))}px` }
-  const messageTextStyle: CSSProperties = { fontSize: `${Math.max(24, Math.round(74 * messageScale))}px`, lineHeight: 1.08 }
-
-  const messageStageStyle: CSSProperties = isDesktop
-    ? { left: '50%', top: '74%', width: `${Math.max(340, windowSize.width - qrReservePx - 64)}px`, maxWidth: 'min(88vw, 1400px)', paddingLeft: '18px', paddingRight: '18px', transform: 'translate(-50%, -50%)' }
-    : { left: '50%', top: '74%', width: '94vw', paddingLeft: '14px', paddingRight: '14px', transform: 'translate(-50%, -50%)' }
-
   const qrPanelStyle: CSSProperties = { top: 'max(5.6rem, calc(env(safe-area-inset-top, 0px) + 0.4rem))', right: 'max(0.55rem, calc(env(safe-area-inset-right, 0px) + 0.35rem))' }
 
   // EFFET AUDIO CSS SUR LA VIDÉO (Scale sur les basses, luminosité sur les mediums)
@@ -798,18 +787,34 @@ export default function StartShowClient() {
             </div>
           )}
 
-          {/* MESSAGE */}
-          {activeMessage && activeMessage.content && !spectatorTakeoverUrl && (
-            <div className="absolute z-40 flex flex-col items-center justify-center transition-all duration-500 ease-out" style={messageStageStyle}>
-              <div className="animate-message-slide-up text-center w-full">
-                <div className="inline-flex items-center gap-3 bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-xl mb-4 md:mb-6">
-                  <span className="text-purple-400 font-bold tracking-wider uppercase" style={messageNameStyle}>
-                    {activeMessage.displayName}
+          {/* MESSAGES MARQUEE (TICKER) */}
+          {displayQueue.length > 0 && !spectatorTakeoverUrl && (
+            <div className="absolute bottom-[12vh] left-0 right-0 z-40 overflow-hidden py-4 bg-black/40 backdrop-blur-md border-y border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.8)] pointer-events-none">
+              {/* Overlay gradients for smooth fade on edges */}
+              <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-black/80 to-transparent z-10" />
+              <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-black/80 to-transparent z-10" />
+              
+              {/* Le défilement est configuré de Droite à Gauche (standard) pour faciliter la lecture. 
+                  Pour de la Gauche vers la Droite, on utiliserait 'animate-marquee-ltr' */}
+              <div 
+                className="whitespace-nowrap inline-block animate-marquee-rtl px-[100vw]"
+                style={{ animationDuration: `${Math.max(20, displayQueue.length * 15)}s` }}
+              >
+                {displayQueue.map((msg, idx) => (
+                  <span key={msg.id} className="inline-flex items-center mx-12">
+                    <span className="bg-white/10 px-6 py-2 rounded-full border border-white/20 shadow-lg mr-6">
+                      <span className="text-purple-400 font-extrabold tracking-widest uppercase text-xl md:text-3xl" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>
+                        {msg.displayName}
+                      </span>
+                    </span>
+                    <span className="text-white font-black tracking-tight text-3xl md:text-5xl" style={{ textShadow: '0 4px 24px rgba(0,0,0,0.8)' }}>
+                      {msg.content}
+                    </span>
+                    {idx < displayQueue.length - 1 && (
+                      <span className="mx-12 text-pink-500 text-4xl animate-pulse">✦</span>
+                    )}
                   </span>
-                </div>
-                <h2 className="text-white font-black tracking-tight" style={{ ...messageTextStyle, textShadow: '0 4px 24px rgba(0,0,0,0.6)' }}>
-                  {activeMessage.content}
-                </h2>
+                ))}
               </div>
             </div>
           )}
